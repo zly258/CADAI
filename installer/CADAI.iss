@@ -1,9 +1,9 @@
-; CADAI (AutoCAD 2019-2026 AI Assistant) Inno Setup 安装脚本
+﻿; CADAI (AutoCAD 2019-2026 AI Assistant) Inno Setup 安装脚本
 ; 打包产物：..\dist\CADAI-Setup-v1.0.0.exe
 ; 安装位置：C:\Program Files\Autodesk\ApplicationPlugins\CADAI.bundle（受 AutoCAD SECURELOAD 信任）
 
 #ifndef MyAppVersion
-  #define MyAppVersion "1.0.0"
+  #define MyAppVersion "1.0.1"
 #endif
 
 #define MyAppName "CADAI - AutoCAD AI Assistant"

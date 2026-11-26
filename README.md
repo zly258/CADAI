@@ -87,11 +87,11 @@ The deploy script installs `CADAI.bundle` to `C:\Program Files\Autodesk\Applicat
 
 ### Windows Installer (Recommended)
 
-Download `CADAI-Setup-v1.0.0.exe` from [GitHub Releases](https://github.com/zly258/CADAI/releases) and run the installer. It automatically deploys `CADAI.bundle` to `C:\Program Files\Autodesk\ApplicationPlugins\CADAI.bundle`, cleans duplicate copies, and clears stale AutoCAD plugin registry cache.
+Download `CADAI-Setup-v1.0.1.exe` from [GitHub Releases](https://github.com/zly258/CADAI/releases) and run the installer. It automatically deploys `CADAI.bundle` to `C:\Program Files\Autodesk\ApplicationPlugins\CADAI.bundle`, cleans duplicate copies, and clears stale AutoCAD plugin registry cache.
 
 ### Manual bundle installation
 
-Extract the packaged `CADAI.bundle` folder from `CADAI-v1.0.0-AutoCAD2019-2026.zip` into:
+Extract the packaged `CADAI.bundle` folder from `CADAI-v1.0.1-AutoCAD2019-2026.zip` into:
 
 ```text
 C:\Program Files\Autodesk\ApplicationPlugins\CADAI.bundle

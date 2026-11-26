@@ -287,6 +287,63 @@
               Style="{StaticResource Text.Caption}" Cursor="Hand"
               ToolTip="打开 GitHub 仓库"
               MouseLeftButtonUp="CopyrightText_Click"/>
+
+   <!-- 内嵌历史对话侧滑抽屉（替代模态弹窗，点击历史图标或遮罩层即可收起） -->
+   <Grid x:Name="HistoryDrawerOverlay" Grid.Row="0" Grid.RowSpan="4" Visibility="Collapsed" Panel.ZIndex="20">
+    <!-- 半透明遮罩：点击空白处收起抽屉 -->
+    <Border Background="{StaticResource Brush.Scrim}" MouseLeftButtonDown="HistoryDrawerScrim_MouseDown"/>
+
+    <!-- 左侧抽屉主体 -->
+    <Border HorizontalAlignment="Left" Width="310" MaxWidth="360"
+            Background="{StaticResource Brush.Panel}"
+            BorderBrush="{StaticResource Brush.Border.Strong}"
+            BorderThickness="0,0,1,0">
+     <Grid>
+      <Grid.RowDefinitions>
+       <RowDefinition Height="Auto"/>
+       <RowDefinition Height="Auto"/>
+       <RowDefinition Height="*"/>
+      </Grid.RowDefinitions>
+
+      <!-- 抽屉顶栏：标题 + 打开目录 + 关闭 -->
+      <Border Grid.Row="0" Padding="14,10"
+              BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,0,1">
+       <DockPanel LastChildFill="False">
+        <TextBlock x:Name="HistoryDrawerTitle" DockPanel.Dock="Left" Text="历史对话"
+                   Style="{StaticResource Text.Section}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+         <Button x:Name="HistoryDrawerFolderButton" Click="HistoryFolder_Click"
+                 Style="{StaticResource Button.Icon}" Margin="0,0,4,0"/>
+         <Button x:Name="HistoryDrawerCloseButton" Click="CloseHistoryDrawer_Click"
+                 Style="{StaticResource Button.Icon}"/>
+        </StackPanel>
+       </DockPanel>
+      </Border>
+
+      <!-- 批量操作条：全选 + 批量删除 -->
+      <Border Grid.Row="1" Padding="12,8"
+              Background="{StaticResource Brush.MutedPanel}"
+              BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,0,1">
+       <DockPanel LastChildFill="False">
+        <CheckBox x:Name="HistorySelectAllCheckBox" DockPanel.Dock="Left"
+                  Content="全选" IsThreeState="True" Focusable="False"
+                  VerticalAlignment="Center" Style="{StaticResource CheckBox.Base}"
+                  Click="SelectAllHistory_Click"/>
+        <Button x:Name="HistoryBatchDeleteButton" DockPanel.Dock="Right"
+                Content="批量删除" IsEnabled="False"
+                Style="{StaticResource Button.Danger.Small}"
+                Click="BatchDeleteHistory_Click"/>
+       </DockPanel>
+      </Border>
+
+      <!-- 历史列表滚动区 -->
+      <ScrollViewer Grid.Row="2" Style="{StaticResource ScrollViewer.Base}"
+                    VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+       <StackPanel x:Name="HistoryDrawerItemsPanel" Margin="10,10,10,12"/>
+      </ScrollViewer>
+     </Grid>
+    </Border>
+   </Grid>
   </Grid>
  </Grid>
 </UserControl>

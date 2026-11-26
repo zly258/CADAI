@@ -138,8 +138,7 @@ namespace CadAI.Core
             SetButtonIcon(SendButton, MaterialSymbols.Send, UiLanguage.T("发送消息", "Send message"), 16);
             SetButtonIconText(ResumeQueueButton, MaterialSymbols.PlayArrow, UiLanguage.T("继续执行", "Resume"), UiLanguage.T("继续执行待发送队列", "Resume queued messages"));
             SetButtonIconText(ClearQueueButton, MaterialSymbols.Delete, UiLanguage.T("清空", "Clear"), UiLanguage.T("清空所有排队消息", "Clear all queued messages"));
-            if (HistoryTitleTextBlock != null) HistoryTitleTextBlock.Text = L("HistoryTitle");
-            SetButtonIconText(HistoryFolderButton, MaterialSymbols.FolderOpen, L("Folder"), UiLanguage.T("打开历史对话目录", "Open chat history folder"));
+            RefreshHistoryDrawerTexts();
         }
 
         private void SetStatus(StatusKind kind, string text = null)

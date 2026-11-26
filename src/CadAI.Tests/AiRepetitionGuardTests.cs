@@ -88,4 +88,34 @@ public class AiRepetitionGuardTests
             Assert.False(detector.Append(chunk));
         }
     }
+
+    [Fact]
+    public void MarkdownDividerAndBoxLines_DoNotTrigger()
+    {
+        var detector = new RepetitionDetector();
+
+        // Markdown 分隔线、ASCII 表格边框与大量空格均属于低熵格式字符，绝不能误判为死循环
+        string divider = new string('-', 120) + "\n"
+            + new string('─', 120) + "\n"
+            + "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|\n"
+            + new string(' ', 100) + "\n";
+
+        Assert.False(detector.Append(divider));
+    }
+
+    [Fact]
+    public void ScatteredIdenticalLines_DoNotTrigger()
+    {
+        var detector = new RepetitionDetector();
+
+        // 同一句 CAD 图层/规范说明在长思考中相隔 3000+ 字符出现 3 次，属于正常回溯而非原地死循环
+        string fillerA = string.Join("", System.Linq.Enumerable.Range(0, 120).Select(i => $"StepA-{i:D3}-coord({i * 10},{i * 20}); "));
+        string fillerB = string.Join("", System.Linq.Enumerable.Range(0, 120).Select(i => $"StepB-{i:D3}-layer(L{i})-dim({i * 5}); "));
+
+        Assert.False(detector.Append(Paragraph));
+        Assert.False(detector.Append(fillerA));
+        Assert.False(detector.Append(Paragraph));
+        Assert.False(detector.Append(fillerB));
+        Assert.False(detector.Append(Paragraph));
+    }
 }

@@ -14,93 +14,63 @@ namespace CadAI.Core
 {
     public partial class AiChatView
     {
-        private Window _historyDialog;
         private IReadOnlyList<AgentMessage> _pendingHistoryMessages;
-        private StackPanel HistoryItemsPanel = new StackPanel();
-        private TextBlock HistoryTitleTextBlock = new TextBlock();
-        private Button HistoryFolderButton = new Button();
-        private CheckBox _selectAllHistoryCheckBox;
-        private Button _batchDeleteButton;
+        private StackPanel HistoryItemsPanel => HistoryDrawerItemsPanel;
+        private TextBlock HistoryTitleTextBlock => HistoryDrawerTitle;
+        private Button HistoryFolderButton => HistoryDrawerFolderButton;
+        private CheckBox _selectAllHistoryCheckBox => HistorySelectAllCheckBox;
+        private Button _batchDeleteButton => HistoryBatchDeleteButton;
         private readonly HashSet<string> _selectedHistoryPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         private readonly List<HistoryItem> _currentHistoryItems = new List<HistoryItem>();
         private bool _isUpdatingBatchState;
 
+        private bool IsHistoryDrawerOpen => HistoryDrawerOverlay != null && HistoryDrawerOverlay.Visibility == Visibility.Visible;
+
         private void History_Click(object sender, RoutedEventArgs e)
         {
-            if (_historyDialog != null) { _historyDialog.Activate(); return; }
+            if (HistoryDrawerOverlay == null) return;
+            if (IsHistoryDrawerOpen)
+            {
+                CloseHistoryDrawer();
+                return;
+            }
+            OpenHistoryDrawer();
+        }
+
+        private void OpenHistoryDrawer()
+        {
+            if (HistoryDrawerOverlay == null) return;
             _selectedHistoryPaths.Clear();
-
-            // 每次打开都重建复用控件：上次关闭时它们仍挂在旧对话框的可视树里，
-            // 直接复用会抛"指定的元素已经是另一个元素的逻辑子元素"。
-            HistoryItemsPanel = new StackPanel();
-            HistoryFolderButton = new Button();
-            HistoryTitleTextBlock = new TextBlock();
-
-            var panel = new DockPanel
-            {
-                Margin = TryFindResource("Layout.WindowPadding") is Thickness windowPadding ? windowPadding : new Thickness(8)
-            };
-
-            var toolbar = new DockPanel { Margin = new Thickness(0, 0, 0, 10) };
-            DockPanel.SetDock(toolbar, Dock.Top);
-
-            _selectAllHistoryCheckBox = new CheckBox
-            {
-                Content = "全选",
-                IsThreeState = true,
-                Focusable = false,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(4, 0, 10, 0)
-            };
-            ApplyStyle(_selectAllHistoryCheckBox, "CheckBox.Base");
-            _selectAllHistoryCheckBox.Click += SelectAllHistory_Click;
-
-            var rightActions = new StackPanel { Orientation = Orientation.Horizontal };
-            DockPanel.SetDock(rightActions, Dock.Right);
-
-            _batchDeleteButton = new Button
-            {
-                Content = "批量删除",
-                Margin = new Thickness(0, 0, 8, 0),
-                IsEnabled = false
-            };
-            // 危险操作走 Danger 样式：红边红字、悬停淡红底，禁用态自动转灰。
-            // 之前是 Secondary + 本地 Foreground=Danger，悬停/禁用的前景全被本地值锁死。
-            ApplyStyle(_batchDeleteButton, "Button.Danger.Small");
-            _batchDeleteButton.Click += BatchDeleteHistory_Click;
-
-            HistoryFolderButton.Content = L("Folder");
-            HistoryFolderButton.Click -= HistoryFolder_Click;
-            HistoryFolderButton.Click += HistoryFolder_Click;
-            ApplyStyle(HistoryFolderButton, "Button.Secondary.Small");
-
-            rightActions.Children.Add(_batchDeleteButton);
-            rightActions.Children.Add(HistoryFolderButton);
-
-            toolbar.Children.Add(rightActions);
-            toolbar.Children.Add(_selectAllHistoryCheckBox);
-
-            panel.Children.Add(toolbar);
-            panel.Children.Add(new ScrollViewer { Content = HistoryItemsPanel, VerticalScrollBarVisibility = ScrollBarVisibility.Auto });
-
+            RefreshHistoryDrawerTexts();
             RefreshHistoryPanel();
+            HistoryDrawerOverlay.Visibility = Visibility.Visible;
+            if (HistoryButton != null)
+                HistoryButton.Style = TryFindResource("Button.Icon.Tonal") as Style ?? HistoryButton.Style;
+        }
 
-            _historyDialog = new Window
-            {
-                Title = L("HistoryTitle"),
-                Width = 680,
-                Height = 540,
-                MinWidth = 500,
-                MinHeight = 320,
-                Content = panel,
-                ShowInTaskbar = false,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-                Resources = Resources,
-                Style = UiStyle("Window.Base")
-            };
-            if (OwnerWindow != null) _historyDialog.Owner = OwnerWindow;
-            try { _historyDialog.ShowDialog(); }
-            finally { panel.Children.Clear(); _historyDialog.Content = null; _historyDialog = null; }
+        private void CloseHistoryDrawer()
+        {
+            if (HistoryDrawerOverlay == null) return;
+            HistoryDrawerOverlay.Visibility = Visibility.Collapsed;
+            if (HistoryButton != null)
+                HistoryButton.Style = TryFindResource("Button.Icon") as Style ?? HistoryButton.Style;
+        }
+
+        private void CloseHistoryDrawer_Click(object sender, RoutedEventArgs e) => CloseHistoryDrawer();
+
+        private void HistoryDrawerScrim_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            CloseHistoryDrawer();
+            e.Handled = true;
+        }
+
+        private void RefreshHistoryDrawerTexts()
+        {
+            if (HistoryDrawerTitle != null) HistoryDrawerTitle.Text = L("HistoryTitle");
+            if (HistorySelectAllCheckBox != null) HistorySelectAllCheckBox.Content = UiLanguage.T("全选", "Select All");
+            SetButtonIcon(HistoryDrawerFolderButton, MaterialSymbols.FolderOpen, UiLanguage.T("打开历史对话目录", "Open chat history folder"), 16);
+            SetButtonIcon(HistoryDrawerCloseButton, MaterialSymbols.Close, UiLanguage.T("关闭历史抽屉", "Close history drawer"), 16);
+            UpdateBatchToolbarState();
         }
 
         private void HistoryFolder_Click(object sender, RoutedEventArgs e) => RunHistoryAction("打开历史目录", OpenHistoryFolder);
@@ -165,8 +135,8 @@ namespace CadAI.Core
             {
                 var empty = new TextBlock
                 {
-                    Text = "暂无历史对话",
-                    Margin = new Thickness(5, 12, 5, 12),
+                    Text = UiLanguage.T("暂无历史对话", "No chat history yet"),
+                    Margin = new Thickness(5, 16, 5, 16),
                     HorizontalAlignment = HorizontalAlignment.Center
                 };
                 ApplyStyle(empty, "Text.Caption");
@@ -198,8 +168,8 @@ namespace CadAI.Core
 
                 _batchDeleteButton.IsEnabled = selected > 0;
                 _batchDeleteButton.Content = selected > 0
-                    ? ($"批量删除 ({selected})")
-                    : ("批量删除");
+                    ? UiLanguage.T($"批量删除 ({selected})", $"Delete ({selected})")
+                    : UiLanguage.T("批量删除", "Delete");
             }
             finally
             {
@@ -309,6 +279,7 @@ namespace CadAI.Core
             titleHost.Children.Add(title);
             titleHost.Children.Add(editor);
             Grid.SetColumn(titleHost, 1);
+            Grid.SetColumnSpan(titleHost, 2);
             Grid.SetRow(titleHost, 0);
             root.Children.Add(titleHost);
 
@@ -347,22 +318,29 @@ namespace CadAI.Core
             };
             editor.LostKeyboardFocus += (s, e) => commit();
 
-            var time = new TextBlock { Text = item.Modified.ToString("MM-dd HH:mm:ss"), Margin = new Thickness(6, 2, 0, 1) };
+            var metaBar = new DockPanel { LastChildFill = false, Margin = new Thickness(4, 3, 0, 0) };
+            var time = new TextBlock
+            {
+                Text = item.Modified.ToString("MM-dd HH:mm"),
+                VerticalAlignment = VerticalAlignment.Center
+            };
             ApplyStyle(time, "Text.Caption");
-            Grid.SetColumn(time, 1);
-            Grid.SetRow(time, 1);
-            root.Children.Add(time);
+            DockPanel.SetDock(time, Dock.Left);
+            metaBar.Children.Add(time);
 
-            var actions = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(4, 0, 0, 0) };
-            actions.Children.Add(HistoryActionButton("重命名", beginEdit));
-            actions.Children.Add(HistoryActionButton("导出", () => ExportHistoryItem(item)));
-            actions.Children.Add(HistoryActionButton("删除", () => DeleteHistoryItem(item), true));
-            Grid.SetColumn(actions, 2);
-            Grid.SetRow(actions, 0);
-            Grid.SetRowSpan(actions, 2);
-            root.Children.Add(actions);
+            var actions = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            actions.Children.Add(HistoryActionButton(UiLanguage.T("重命名", "Rename"), beginEdit));
+            actions.Children.Add(HistoryActionButton(UiLanguage.T("导出", "Export"), () => ExportHistoryItem(item)));
+            actions.Children.Add(HistoryActionButton(UiLanguage.T("删除", "Delete"), () => DeleteHistoryItem(item), true));
+            DockPanel.SetDock(actions, Dock.Right);
+            metaBar.Children.Add(actions);
 
-            var row = new Border { Child = root, Padding = new Thickness(8, 6, 8, 6), Margin = new Thickness(0, 0, 0, 6) };
+            Grid.SetColumn(metaBar, 1);
+            Grid.SetColumnSpan(metaBar, 2);
+            Grid.SetRow(metaBar, 1);
+            root.Children.Add(metaBar);
+
+            var row = new Border { Child = root, Padding = new Thickness(8, 7, 8, 7), Margin = new Thickness(0, 0, 0, 6) };
             ApplyStyle(row, "Card.Info");
             return row;
         }
@@ -485,7 +463,7 @@ namespace CadAI.Core
             if (item == null) return;
             if (IsTaskRunning) { ShowInformation(L("WaitForTask")); return; }
             LoadHistoryConversation(item.Path);
-            _historyDialog?.Close();
+            CloseHistoryDrawer();
             FocusInput();
         }
 

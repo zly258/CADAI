@@ -87,11 +87,11 @@ pwsh -ExecutionPolicy Bypass -File .\build.ps1 -NoDeploy
 
 ### Windows 安装程序（推荐）
 
-从 [GitHub Releases](https://github.com/zly258/CADAI/releases) 下载 `CADAI-Setup-v1.0.0.exe` 并双击运行。安装程序会自动将 `CADAI.bundle` 部署至 `C:\Program Files\Autodesk\ApplicationPlugins\CADAI.bundle`，清理旧版重复副本与 AutoCAD 注册表缓存。
+从 [GitHub Releases](https://github.com/zly258/CADAI/releases) 下载 `CADAI-Setup-v1.0.1.exe` 并双击运行。安装程序会自动将 `CADAI.bundle` 部署至 `C:\Program Files\Autodesk\ApplicationPlugins\CADAI.bundle`，清理旧版重复副本与 AutoCAD 注册表缓存。
 
 ### 手动安装发布包
 
-将 `CADAI-v1.0.0-AutoCAD2019-2026.zip` 解压后的 `CADAI.bundle` 目录复制到：
+将 `CADAI-v1.0.1-AutoCAD2019-2026.zip` 解压后的 `CADAI.bundle` 目录复制到：
 
 ```text
 C:\Program Files\Autodesk\ApplicationPlugins\CADAI.bundle

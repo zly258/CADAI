@@ -7,35 +7,34 @@ namespace CadAI.Core
     /// <summary>
     /// 模型输出原地重复的检测器：用来掐断"思考内容反复吐同一段"的退化循环。
     ///
-    /// 为什么不能靠现有的轮次/工具预算：那种循环发生在**一次流式请求内部**，
-    /// 模型只是不停往同一个 delta 流里写相同文字，不产生新的 tool_call，
-    /// 轮次上限、no-progress 守卫、工具预算全都没有机会触发；请求头已到达后
-    /// 客户端也没有正文超时，界面会一直显示思考直到用户手动点「停止」。
-    ///
-    /// 判定方式：对最近 64 个字符的滑动窗口做哈希，同一个窗口出现 3 次即认定重复。
-    /// 只看"完全相同的一段文字重复出现"，不做语义/相似度判断——正常推理里同一句
-    /// 64 字符的话连续出现三次几乎不可能，而退化循环会在几百字符内迅速满足条件。
-    /// 短句循环（例如同一句 20 字反复）同样会被覆盖：窗口按字符滑动，同余位置的
-    /// 窗口会周期性地落回同一个哈希。
-    ///
-    /// 阈值（64 / 3）刻意保守，宁可晚一点触发，也不误杀正常的重复强调。
+    /// 优化后的防误判判定策略：
+    ///  1. **低熵过滤**：跳过 Markdown 分隔线（---- / ==== / ────）、表格边框或纯空白等低信息量窗口
+    ///     （去空白后不同字符少于 6 种），杜绝单条分隔线触发误判。
+    ///  2. **非重叠位置追踪**：同一哈希的命中位置间隔必须 ≥ WindowLength，避免重叠窗口自我计数。
+    ///  3. **局部近似周期约束**：仅当最近 3 次非重叠命中的相邻间距均 ≤ 2048 字符，且两次间距近似一致
+    ///     （较大间距 ≤ 2 × 较小间距 + 64）时才判定为原地死循环；相隔数千字的正常复述（如 CAD 图层规范、
+    ///     参数模板或工具名）不会误判。
     /// </summary>
     internal sealed class RepetitionDetector
     {
         internal const int WindowLength = 64;
         internal const int MaxHits = 3;
 
-        /// <summary>
-        /// 只保留最近 64K 字符的统计：退化循环的重复周期远小于它，清理一次不影响判定；
-        /// 不设上限的话，一次超长思考会留下几十万条哈希记录。
-        /// </summary>
+        /// <summary>单次退化循环允许的最大周期跨度（字符）；超过此跨度的远距复述视为正常推理。</summary>
+        private const int MaxLocalPeriod = 2048;
+
+        /// <summary>窗口内去空白后的最小不同字符数；低于此值视为分隔线/装饰符而非语义死循环。</summary>
+        private const int MinDistinctNonWhitespaceChars = 6;
+
+        /// <summary>单次最多保留最近 64K 字符的缓冲区，避免超长思考占用过多内存。</summary>
         private const int MaxTrackedCharacters = 65536;
 
         private readonly StringBuilder _recent = new StringBuilder();
-        private readonly Dictionary<ulong, int> _windowHits = new Dictionary<ulong, int>();
+        private readonly Dictionary<ulong, List<int>> _windowPositions = new Dictionary<ulong, List<int>>();
+        private int _baseOffset;
         private int _scanned;
 
-        /// <summary>追加一段增量文本；返回 true 表示检测到原地重复（调用方应中止请求）。</summary>
+        /// <summary>追加一段增量文本；返回 true 表示检测到局部周期性原地重复（调用方应中止请求）。</summary>
         public bool Append(string delta)
         {
             if (string.IsNullOrEmpty(delta)) return false;
@@ -45,12 +44,30 @@ namespace CadAI.Core
             {
                 if (end < WindowLength - 1) continue;
 
-                ulong hash = HashWindow(end - WindowLength + 1);
-                int hits;
-                _windowHits.TryGetValue(hash, out hits);
-                hits++;
-                if (hits >= MaxHits) return true;
-                _windowHits[hash] = hits;
+                int start = end - WindowLength + 1;
+                if (!HasSufficientEntropy(start)) continue;
+
+                ulong hash = HashWindow(start);
+                int absPos = _baseOffset + start;
+
+                if (!_windowPositions.TryGetValue(hash, out List<int> positions))
+                {
+                    positions = new List<int>(4) { absPos };
+                    _windowPositions[hash] = positions;
+                    continue;
+                }
+
+                int lastPos = positions[positions.Count - 1];
+                // 仅统计非重叠出现，避免同一段内相邻字符滑动窗口自我叠加计数
+                if (absPos - lastPos < WindowLength) continue;
+
+                positions.Add(absPos);
+                // 只保留最近的若干次位置，避免超长流中列表无限增长
+                if (positions.Count > MaxHits + 2)
+                    positions.RemoveRange(0, positions.Count - (MaxHits + 2));
+
+                if (IsLocalPeriodicLoop(positions))
+                    return true;
             }
 
             _scanned = _recent.Length;
@@ -58,17 +75,73 @@ namespace CadAI.Core
             return false;
         }
 
+        private static bool IsLocalPeriodicLoop(List<int> positions)
+        {
+            int count = positions.Count;
+            if (count < MaxHits) return false;
+
+            int p2 = positions[count - 1];
+            int p1 = positions[count - 2];
+            int p0 = positions[count - 3];
+
+            int gap1 = p1 - p0;
+            int gap2 = p2 - p1;
+
+            if (gap1 > MaxLocalPeriod || gap2 > MaxLocalPeriod) return false;
+
+            int minGap = Math.Min(gap1, gap2);
+            int maxGap = Math.Max(gap1, gap2);
+            // 真实退化循环的重复间隔高度稳定；放宽至 2 倍 + 64 字符以容忍轻微变体
+            return maxGap <= (minGap * 2) + WindowLength;
+        }
+
+        private bool HasSufficientEntropy(int start)
+        {
+            // 统计窗口内非空白不同字符数（最多检查到达到阈值即早退，开销极低）
+            char[] seen = new char[MinDistinctNonWhitespaceChars];
+            int distinct = 0;
+            int end = start + WindowLength;
+            for (int i = start; i < end; i++)
+            {
+                char c = _recent[i];
+                if (char.IsWhiteSpace(c)) continue;
+
+                bool exists = false;
+                for (int j = 0; j < distinct; j++)
+                {
+                    if (seen[j] == c) { exists = true; break; }
+                }
+                if (exists) continue;
+
+                seen[distinct++] = c;
+                if (distinct >= MinDistinctNonWhitespaceChars) return true;
+            }
+            return false;
+        }
+
         private void Trim()
         {
             if (_recent.Length <= MaxTrackedCharacters) return;
 
-            // 保留两倍窗口长度，保证下一段增量仍能与旧内容拼出完整窗口。
-            int keep = WindowLength * 2;
-            string tail = _recent.ToString(_recent.Length - keep, keep);
+            // 保留最近 4096 字符以完整维持局部周期窗口的连续性
+            int keep = Math.Min(_recent.Length, MaxLocalPeriod * 2);
+            int removed = _recent.Length - keep;
+            string tail = _recent.ToString(removed, keep);
             _recent.Clear();
             _recent.Append(tail);
-            _windowHits.Clear();
-            _scanned = 0;
+            _baseOffset += removed;
+            _scanned = _recent.Length;
+
+            // 仅淘汰早于局部窗口下界的过旧哈希记录
+            int minKeepPos = _baseOffset - MaxLocalPeriod;
+            var staleKeys = new List<ulong>();
+            foreach (var kv in _windowPositions)
+            {
+                List<int> list = kv.Value;
+                if (list.Count == 0 || list[list.Count - 1] < minKeepPos)
+                    staleKeys.Add(kv.Key);
+            }
+            foreach (ulong k in staleKeys) _windowPositions.Remove(k);
         }
 
         private ulong HashWindow(int start)
@@ -87,7 +160,7 @@ namespace CadAI.Core
 
     /// <summary>
     /// 模型流式输出陷入原地重复时抛出的异常。归类为**永久错误**：
-    /// 原样重发同一请求只会得到同样的循环，直接交给模型回退链或用户处理。
+    /// 原样重发同一请求只会得到同样的循环，直接交给上层纠偏重试或用户处理。
     /// </summary>
     internal sealed class AiRepetitionException : Exception
     {

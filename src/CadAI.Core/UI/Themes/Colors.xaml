@@ -106,6 +106,7 @@
   <SolidColorBrush x:Key="Brush.Selection" Color="{StaticResource Color.Selection}" />
   <SolidColorBrush x:Key="Brush.Selection.Hover" Color="{StaticResource Color.SelectionHover}" />
   <SolidColorBrush x:Key="Brush.Focus" Color="{StaticResource Color.Focus}" />
+  <SolidColorBrush x:Key="Brush.Scrim" Color="#66000000" />
   <SolidColorBrush x:Key="Brush.OnAccent" Color="{StaticResource Color.OnAccent}" />
 
   <SolidColorBrush x:Key="Brush.Danger" Color="{StaticResource Color.Danger}" />

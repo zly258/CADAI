@@ -452,12 +452,13 @@ namespace CadAI.Core
                             Dictionary<string, object> delta = AsDictionary(GetValue(choice, "delta"));
                             if (delta.Count == 0) delta = AsDictionary(GetValue(choice, "message"));
                             if (delta.Count == 0) continue;
+                            bool loopGuardEnabled = _settings.AutoRetryOnReasoningLoop;
                             string text = ReadContent(GetValue(delta, "content"));
                             if (!string.IsNullOrEmpty(text))
                             {
                                 // 退化重复发生在单次流里，轮次预算和 no-progress 守卫都看不到；
-                                // 一旦判定原地重复就立刻掐断，避免界面无限"思考"下去。
-                                if (contentLoop.Append(text))
+                                // 仅在启用防死循环保护时检测，一旦判定局部周期重复即中止交由上层纠偏重试。
+                                if (loopGuardEnabled && contentLoop.Append(text))
                                     throw new AiRepetitionException("模型回复内容陷入原地重复。");
                                 content.Append(text);
                                 callbacks.OnContentDelta?.Invoke(text);
@@ -465,11 +466,12 @@ namespace CadAI.Core
                             string think = ReadReasoning(delta);
                             if (!string.IsNullOrEmpty(think))
                             {
-                                if (reasoningLoop.Append(think))
+                                if (loopGuardEnabled && reasoningLoop.Append(think))
                                     throw new AiRepetitionException("模型思考内容陷入原地重复。");
                                 reasoning.Append(think);
-                                // 软死循环兜底：思考已超 24,000 字符仍未产出任何正文或工具调用时主动中断，交给上层纠偏重试。
-                                if (reasoning.Length > 24000 && content.Length == 0 && toolParts.Count == 0)
+                                // 软死循环兜底：复杂 CAD 几何推演在深度思考模式下可达数万字，
+                                // 仅当思考超 80,000 字符仍未产出任何正文或工具调用时才中断纠偏。
+                                if (loopGuardEnabled && reasoning.Length > 80000 && content.Length == 0 && toolParts.Count == 0)
                                     throw new AiRepetitionException("模型思考过程过长且未收敛，疑似陷入死循环。");
                                 callbacks.OnReasoningDelta?.Invoke(think);
                             }
