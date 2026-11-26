@@ -34,7 +34,6 @@ namespace CadAI.Host.AutoCAD
                 Report("连接池设置失败（不影响对话功能）：" + ex.Message);
             }
 
-            bool greeted = false;
             bool ribbonDone = false;
             bool updateChecked = false;
 
@@ -45,12 +44,6 @@ namespace CadAI.Host.AutoCAD
                     try
                     {
                         if (!ribbonDone) ribbonDone = Ribbon.EnsureLoaded();
-
-                        if (!greeted && AcadApp.DocumentManager.MdiActiveDocument != null)
-                        {
-                            greeted = true;
-                            Report("CADAI 智能助手已就绪（v" + VersionInfo.Version + "），输入 CADCHAT 打开对话。");
-                        }
 
                         if (!updateChecked)
                         {
