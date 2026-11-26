@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-blue.svg" alt="License: GPL-3.0"></a> <img src="https://img.shields.io/badge/AutoCAD-2019--2026-0696D7.svg" alt="AutoCAD 2019-2026"> <img src="https://img.shields.io/badge/.NET-4.8%20%7C%208.0-512BD4.svg" alt=".NET Framework 4.8 and .NET 8.0"> <img src="https://img.shields.io/badge/Platform-Windows%20x64-0078D6.svg" alt="Platform: Windows x64">
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-22C55E?style=flat-square" alt="License: GPL-3.0"></a> <img src="https://img.shields.io/badge/AutoCAD-2019--2026-0696D7?style=flat-square" alt="AutoCAD 2019-2026"> <img src="https://img.shields.io/badge/.NET-4.8%20%7C%208.0-512BD4?style=flat-square" alt=".NET Framework 4.8 and .NET 8.0"> <img src="https://img.shields.io/badge/Platform-Windows%20x64-0078D6?style=flat-square" alt="Platform: Windows x64">
 </p>
 
 CADAI embeds an AI chat workbench directly inside Autodesk AutoCAD. You can inspect drawings, repair missing fonts, batch-edit text, align annotations, draw and dimension geometry, read/write Excel and PDF files, and export layouts to PDF using natural language. Every drawing modification runs inside an AutoCAD document lock and transaction undo group so a single `Ctrl+Z` reverts the entire turn.
@@ -85,12 +85,23 @@ pwsh -ExecutionPolicy Bypass -File .\build.ps1 -NoDeploy
 
 The deploy script installs `CADAI.bundle` to `C:\Program Files\Autodesk\ApplicationPlugins\CADAI.bundle` (or `%APPDATA%\Autodesk\ApplicationPlugins\CADAI.bundle` when running without administrator privileges) and removes duplicate copies.
 
+### Windows Installer (Recommended)
+
+Download `CADAI-Setup-v1.0.0.exe` from [GitHub Releases](https://github.com/zly258/CADAI/releases) and run the installer. It automatically deploys `CADAI.bundle` to `C:\Program Files\Autodesk\ApplicationPlugins\CADAI.bundle`, cleans duplicate copies, and clears stale AutoCAD plugin registry cache.
+
 ### Manual bundle installation
 
-Extract the packaged `CADAI.bundle` folder from `dist/CADAI-v1.0.0-AutoCAD2019-2026.zip` into:
+Extract the packaged `CADAI.bundle` folder from `CADAI-v1.0.0-AutoCAD2019-2026.zip` into:
 
 ```text
 C:\Program Files\Autodesk\ApplicationPlugins\CADAI.bundle
+```
+
+To build the `.exe` installer locally with [Inno Setup 6](https://jrsoftware.org/isinfo.php):
+
+```pwsh
+pwsh -ExecutionPolicy Bypass -File .\build.ps1 -Publish
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" .\installer\CADAI.iss
 ```
 
 ## Quick Start

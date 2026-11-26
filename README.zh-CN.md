@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-blue.svg" alt="开源协议：GPL-3.0"></a> <img src="https://img.shields.io/badge/AutoCAD-2019--2026-0696D7.svg" alt="支持 AutoCAD 2019-2026"> <img src="https://img.shields.io/badge/.NET-4.8%20%7C%208.0-512BD4.svg" alt=".NET Framework 4.8 与 .NET 8.0"> <img src="https://img.shields.io/badge/Platform-Windows%20x64-0078D6.svg" alt="平台：Windows x64">
+  <a href="./LICENSE"><img src="https://img.shields.io/badge/License-GPL--3.0-22C55E?style=flat-square" alt="开源协议：GPL-3.0"></a> <img src="https://img.shields.io/badge/AutoCAD-2019--2026-0696D7?style=flat-square" alt="支持 AutoCAD 2019-2026"> <img src="https://img.shields.io/badge/.NET-4.8%20%7C%208.0-512BD4?style=flat-square" alt=".NET Framework 4.8 与 .NET 8.0"> <img src="https://img.shields.io/badge/Platform-Windows%20x64-0078D6?style=flat-square" alt="平台：Windows x64">
 </p>
 
 CADAI 将 AI 对话工作台直接嵌入 Autodesk AutoCAD 内部。用户可以通过自然语言完成当前 DWG 图纸的查图体检、缺失字体修复、文字批量修改、段落排版对齐、几何绘制与标注、Excel/PDF 读写以及布局导出 PDF。所有改图操作均带文档锁与事务保护，并在同一撤销组内执行，在 AutoCAD 中按一次 `Ctrl+Z` 即可还原整轮修改。
@@ -85,12 +85,23 @@ pwsh -ExecutionPolicy Bypass -File .\build.ps1 -NoDeploy
 
 部署脚本默认将插件安装到 `C:\Program Files\Autodesk\ApplicationPlugins\CADAI.bundle`（非管理员权限下自动回退至 `%APPDATA%\Autodesk\ApplicationPlugins\CADAI.bundle`），并自动清理重复安装包。
 
+### Windows 安装程序（推荐）
+
+从 [GitHub Releases](https://github.com/zly258/CADAI/releases) 下载 `CADAI-Setup-v1.0.0.exe` 并双击运行。安装程序会自动将 `CADAI.bundle` 部署至 `C:\Program Files\Autodesk\ApplicationPlugins\CADAI.bundle`，清理旧版重复副本与 AutoCAD 注册表缓存。
+
 ### 手动安装发布包
 
-将 `dist/CADAI-v1.0.0-AutoCAD2019-2026.zip` 解压后的 `CADAI.bundle` 目录复制到：
+将 `CADAI-v1.0.0-AutoCAD2019-2026.zip` 解压后的 `CADAI.bundle` 目录复制到：
 
 ```text
 C:\Program Files\Autodesk\ApplicationPlugins\CADAI.bundle
+```
+
+如需在本机通过 [Inno Setup 6](https://jrsoftware.org/isinfo.php) 重新打包 `.exe` 安装程序：
+
+```pwsh
+pwsh -ExecutionPolicy Bypass -File .\build.ps1 -Publish
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" .\installer\CADAI.iss
 ```
 
 ## 快速开始
