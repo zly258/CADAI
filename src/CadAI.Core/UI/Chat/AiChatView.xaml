@@ -1,0 +1,292 @@
+<UserControl x:Class="CadAI.Core.AiChatView"
+ xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+ xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ xmlns:local="clr-namespace:CadAI.Core"
+ Background="{DynamicResource Brush.WindowBackground}"
+ FontSize="{DynamicResource FontSize.Body}"
+ TextOptions.TextFormattingMode="Display"
+ UseLayoutRounding="True"
+ SnapsToDevicePixels="True"
+ Loaded="UnifiedLoaded"
+ Unloaded="UnifiedUnloaded"
+ AllowDrop="True"
+ PreviewDragOver="AiChatView_PreviewDragOver"
+ Drop="AiChatView_Drop">
+ <UserControl.Resources>
+  <ResourceDictionary>
+   <ResourceDictionary.MergedDictionaries>
+    <ResourceDictionary Source="pack://application:,,,/CadAI.Core;component/UI/Themes/Theme.xaml"/>
+    <ResourceDictionary Source="pack://application:,,,/CadAI.Core;component/UI/Controls/StatusBadge.xaml"/>
+    <ResourceDictionary Source="pack://application:,,,/CadAI.Core;component/UI/Controls/MessageCard.xaml"/>
+   </ResourceDictionary.MergedDictionaries>
+   <!-- 输入区把手平时隐藏：鼠标进入输入坞或正在拖动时显现 -->
+   <Style x:Key="InputResizeGrip.AutoHide" TargetType="{x:Type Thumb}" BasedOn="{StaticResource InputResizeGrip}">
+    <Setter Property="Visibility" Value="Hidden"/>
+    <Style.Triggers>
+     <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType={x:Type Border}}}" Value="True">
+      <Setter Property="Visibility" Value="Visible"/>
+     </DataTrigger>
+     <Trigger Property="IsDragging" Value="True">
+      <Setter Property="Visibility" Value="Visible"/>
+     </Trigger>
+    </Style.Triggers>
+   </Style>
+   <!-- 一体式 MD3 浮起输入坞：明显描边 + 聚焦主色高亮 -->
+   <Style x:Key="Card.ComposerDock" TargetType="{x:Type Border}" BasedOn="{StaticResource Card.Elevated}">
+    <Setter Property="CornerRadius" Value="16"/>
+    <Setter Property="Background" Value="{StaticResource Brush.Panel}"/>
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border.Strong}"/>
+    <Setter Property="BorderThickness" Value="1"/>
+    <Style.Triggers>
+     <Trigger Property="IsKeyboardFocusWithin" Value="True">
+      <Setter Property="BorderBrush" Value="{StaticResource Brush.Focus}"/>
+     </Trigger>
+    </Style.Triggers>
+   </Style>
+  </ResourceDictionary>
+ </UserControl.Resources>
+
+ <!-- 左右分栏架构：左侧 48px 垂直图标导航轨 + 右侧主对话工作区（与传统顶栏堆叠布局明显区分） -->
+ <Grid>
+  <Grid.ColumnDefinitions>
+   <ColumnDefinition Width="48"/>
+   <ColumnDefinition Width="*"/>
+  </Grid.ColumnDefinitions>
+
+  <!-- 左侧垂直图标导航轨 -->
+  <Border Grid.Column="0"
+          Background="{StaticResource Brush.Panel}"
+          BorderBrush="{StaticResource Brush.Border}"
+          BorderThickness="0,0,1,0"
+          Padding="0,12,0,10"
+          SnapsToDevicePixels="True">
+   <DockPanel LastChildFill="False">
+    <!-- 顶部品牌与对话操作 -->
+    <StackPanel DockPanel.Dock="Top" HorizontalAlignment="Center">
+     <Border x:Name="BrandBadge" Width="32" Height="32" CornerRadius="10"
+             Background="{StaticResource Brush.Accent.Subtle}"
+             BorderBrush="{StaticResource Brush.Border.Strong}"
+             BorderThickness="1"
+             Margin="0,0,0,14"
+             ToolTip="CAD 智能对话 (CADAI)">
+      <local:MaterialIcon Symbol="auto_awesome" Width="17" Height="17" Foreground="{StaticResource Brush.Focus}"/>
+     </Border>
+     <Button x:Name="NewChatButton" Margin="0,0,0,8" Click="NewChat_Click" Style="{StaticResource Button.Icon.Tonal}"/>
+     <Button x:Name="HistoryButton" Margin="0,0,0,8" Click="History_Click" Style="{StaticResource Button.Icon}"/>
+    </StackPanel>
+
+    <!-- 底部设置入口 -->
+    <StackPanel DockPanel.Dock="Bottom" HorizontalAlignment="Center">
+     <Button x:Name="SettingsButton" Click="Settings_Click" Style="{StaticResource Button.Icon}"/>
+    </StackPanel>
+   </DockPanel>
+  </Border>
+
+  <!-- 右侧主对话工作区 -->
+  <Grid Grid.Column="1">
+   <Grid.RowDefinitions>
+    <RowDefinition Height="Auto"/>
+    <RowDefinition Height="*"/>
+    <RowDefinition Height="Auto"/>
+    <RowDefinition Height="Auto"/>
+   </Grid.RowDefinitions>
+
+   <!-- 轻量顶部状态条 -->
+   <Border Grid.Row="0" Padding="14,9"
+           Background="{StaticResource Brush.WindowBackground}"
+           BorderBrush="{StaticResource Brush.Border}"
+           BorderThickness="0,0,0,1">
+    <DockPanel LastChildFill="True">
+     <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+      <TextBlock x:Name="HeaderTitleText" Text="CAD 智能对话" Style="{StaticResource Text.Title}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+      <Border Margin="8,0,0,0" Padding="7,1" CornerRadius="{StaticResource Radius.Pill}"
+              Background="{StaticResource Brush.MutedPanel}" BorderBrush="{StaticResource Brush.Border}" BorderThickness="1"
+              VerticalAlignment="Center">
+       <TextBlock Text="AutoCAD" Style="{StaticResource Text.Caption}" FontSize="{StaticResource FontSize.Micro}"
+                  Foreground="{StaticResource Brush.Text.Secondary}"/>
+      </Border>
+     </StackPanel>
+     <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+      <ContentControl x:Name="StatusBadge" Visibility="Collapsed" Style="{StaticResource StatusBadge.Idle}">
+       <TextBlock x:Name="StatusTextBlock"/>
+      </ContentControl>
+     </StackPanel>
+    </DockPanel>
+   </Border>
+
+   <!-- 对话消息流 + 悬浮回到底部按钮 -->
+   <Grid Grid.Row="1">
+    <ScrollViewer x:Name="ConversationScroll" Style="{StaticResource ScrollViewer.Base}"
+                  HorizontalContentAlignment="Stretch" VerticalScrollBarVisibility="Auto"
+                  CanContentScroll="False"
+                  PreviewMouseWheel="ConversationScroll_PreviewMouseWheel"
+                  ScrollChanged="ConversationScroll_ScrollChanged">
+     <StackPanel x:Name="MessagesPanel" Margin="14,12,14,10" HorizontalAlignment="Stretch"/>
+    </ScrollViewer>
+    <Button x:Name="BackToBottomButton" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+            Margin="0,0,0,12" Visibility="Collapsed" Click="BackToBottom_Click"
+            Style="{StaticResource Button.Icon.Tonal}"
+            ToolTip="回到最新消息并恢复自动跟随">
+     <local:MaterialIcon Symbol="arrow_downward" Width="16" Height="16"/>
+    </Button>
+   </Grid>
+
+   <!-- 一体式 MD3 浮起输入坞 -->
+   <Border Grid.Row="2" Margin="14,2,14,6" Padding="14,4,14,10" Style="{StaticResource Card.ComposerDock}">
+    <Grid>
+     <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+     </Grid.RowDefinitions>
+
+     <Thumb x:Name="InputResizeGrip" Grid.Row="0" Margin="0,0,0,2"
+            Style="{StaticResource InputResizeGrip.AutoHide}"
+            DragStarted="InputResizeGrip_DragStarted"
+            DragDelta="InputResizeGrip_DragDelta"
+            MouseDoubleClick="InputResizeGrip_DoubleClick"
+            ToolTip="拖动调整输入区高度；双击恢复自动高度"
+            AutomationProperties.Name="调整输入区高度"/>
+
+     <!-- 待发送队列面板 -->
+     <Border x:Name="MessageQueueBorder" Grid.Row="1" Margin="0,0,0,6" Padding="8,6"
+             Visibility="Collapsed"
+             Background="{StaticResource Brush.MutedPanel}"
+             BorderBrush="{StaticResource Brush.Border}"
+             BorderThickness="1"
+             CornerRadius="{StaticResource Radius.Input}">
+      <Grid>
+       <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+       </Grid.RowDefinitions>
+       <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,4">
+        <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center">
+         <TextBlock x:Name="QueueTitleText" Text="待执行队列 (0)" Style="{StaticResource Text.Caption}" FontWeight="SemiBold"
+                    Foreground="{StaticResource Brush.Text.Primary}" VerticalAlignment="Center"/>
+         <Border x:Name="QueueStatusHint" Visibility="Collapsed"
+                 Background="{StaticResource Brush.Danger.Subtle}"
+                 CornerRadius="{StaticResource Radius.Small}"
+                 Padding="5,1" Margin="6,0,0,0" VerticalAlignment="Center">
+          <TextBlock Text="已暂停" Style="{StaticResource Text.Caption}"
+                     Foreground="{StaticResource Brush.Danger}" FontSize="{StaticResource FontSize.Micro}"/>
+         </Border>
+        </StackPanel>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+         <Button x:Name="ResumeQueueButton" Content="继续执行" Visibility="Collapsed" Click="ResumeQueue_Click"
+                 Style="{StaticResource Button.Primary.Small}" Margin="0,0,6,0"/>
+         <Button x:Name="ClearQueueButton" Content="清空" Click="ClearQueue_Click"
+                 Style="{StaticResource Button.Subtle.Small}"
+                 ToolTip="清空所有排队消息"/>
+        </StackPanel>
+       </DockPanel>
+       <ScrollViewer Grid.Row="1" MaxHeight="120" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel x:Name="QueueItemsPanel"/>
+       </ScrollViewer>
+      </Grid>
+     </Border>
+
+     <!-- 附件预览条 -->
+     <Border x:Name="AttachmentPreviewBorder" Grid.Row="2" Margin="0,0,0,6" Padding="6,4"
+             Visibility="Collapsed"
+             Background="{StaticResource Brush.MutedPanel}"
+             BorderBrush="{StaticResource Brush.Border}"
+             BorderThickness="1"
+             CornerRadius="{StaticResource Radius.Input}">
+      <Grid>
+       <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+       </Grid.ColumnDefinitions>
+       <ScrollViewer x:Name="ImagePreviewsScroll" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled" Visibility="Collapsed">
+        <StackPanel x:Name="ImagePreviewsPanel" Orientation="Horizontal"/>
+       </ScrollViewer>
+       <Button x:Name="RemoveAttachmentButton" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center"
+               Click="RemoveAttachment_Click" Style="{StaticResource Button.Icon}"/>
+      </Grid>
+     </Border>
+
+     <!-- 无边框融合输入框 -->
+     <TextBox x:Name="InputBox" Grid.Row="3" Style="{StaticResource TextBox.Composer}"
+              AutomationProperties.Name="对话输入"/>
+
+     <!-- 底部融合工具栏：左 = 附件 + 模型/思考下拉弹层；右 = 语音 + 停止 + 发送 -->
+     <Border Grid.Row="4" Margin="0,6,0,0" Padding="0,8,0,0"
+             BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,1,0,0">
+      <Grid>
+       <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+       </Grid.ColumnDefinitions>
+
+       <!-- 左侧：附件 + 模型下拉（内含思考等级）+ 语音提示 -->
+       <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
+        <Button x:Name="AttachmentButton" Click="Attachment_Click" Style="{StaticResource Button.Icon}"/>
+
+        <!-- 模型与思考等级下拉触发钮 -->
+        <Grid Margin="6,0,0,0">
+         <Button x:Name="ModelPickerButton" Click="ModelPickerButton_Click"
+                 Style="{StaticResource Button.Secondary.Small}" Padding="10,0"
+                 ToolTip="切换当前对话模型与思考等级">
+          <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+           <local:MaterialIcon Symbol="auto_awesome" Width="13" Height="13" Margin="0,0,6,0" Foreground="{StaticResource Brush.Focus}"/>
+           <TextBlock x:Name="ModelPickerLabel" Text="配置模型" MaxWidth="150" TextTrimming="CharacterEllipsis" VerticalAlignment="Center"/>
+           <Border x:Name="ReasoningMiniBadge" Margin="6,0,0,0" Padding="5,1" CornerRadius="6"
+                   Background="{StaticResource Brush.Accent.Subtle}" Visibility="Collapsed" VerticalAlignment="Center">
+            <TextBlock x:Name="ReasoningMiniText" Style="{StaticResource Text.Caption}" FontSize="{StaticResource FontSize.Micro}"
+                       Foreground="{StaticResource Brush.Focus}"/>
+           </Border>
+           <Path Margin="6,1,0,0" VerticalAlignment="Center" Data="M 0,0 L 3.5,3.5 L 7,0"
+                 Stroke="{StaticResource Brush.Text.Secondary}" StrokeThickness="1.3"
+                 StrokeStartLineCap="Round" StrokeEndLineCap="Round"/>
+          </StackPanel>
+         </Button>
+
+         <!-- 模型与思考等级浮层 -->
+         <Popup x:Name="ModelPickerPopup" PlacementTarget="{Binding ElementName=ModelPickerButton}"
+                Placement="Top" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+          <Border Style="{StaticResource Card.Flyout}" Width="264" Padding="12" Margin="0,0,0,6">
+           <StackPanel>
+            <DockPanel LastChildFill="False" Margin="0,0,0,6">
+             <TextBlock x:Name="ModelPickerTitleText" DockPanel.Dock="Left" Text="选择模型" Style="{StaticResource Text.Caption}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+             <Button x:Name="ModelPickerConfigButton" DockPanel.Dock="Right" Content="配置…" Style="{StaticResource Button.Subtle.Small}" Click="ModelPickerOpenSettings_Click"/>
+            </DockPanel>
+            <ListBox x:Name="ModelQuickList" MaxHeight="140" Margin="0,0,0,10"
+                     SelectionChanged="ModelQuickList_SelectionChanged"/>
+
+            <Border Style="{StaticResource Rule}" Margin="0,0,0,8"/>
+
+            <TextBlock x:Name="ReasoningLevelTitleText" Text="思考等级" Style="{StaticResource Text.Caption}" FontWeight="SemiBold" Margin="0,0,0,6"/>
+            <ComboBox x:Name="ChatReasoningComboBox" Style="{StaticResource ComboBox.Small}"
+                      SelectionChanged="ChatReasoning_Changed" AutomationProperties.Name="思考等级"/>
+           </StackPanel>
+          </Border>
+         </Popup>
+        </Grid>
+
+        <TextBlock x:Name="VoiceHintText" Visibility="Collapsed" Margin="8,0,0,0" VerticalAlignment="Center"
+                   Style="{StaticResource Text.Caption}" TextTrimming="CharacterEllipsis" MaxWidth="140"
+                   ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+       </StackPanel>
+
+       <!-- 右侧：语音输入 + 停止 + 发送 -->
+       <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+        <Button x:Name="VoiceButton" Margin="0,0,6,0" Click="Voice_Click" Style="{StaticResource Button.Icon}" AutomationProperties.Name="语音输入"/>
+        <Button x:Name="StopButton" Visibility="Collapsed" Click="Stop_Click" Style="{StaticResource Button.Icon.Danger}" Margin="0,0,6,0"/>
+        <Button x:Name="SendButton" Click="UnifiedSend_Click" Style="{StaticResource Button.Icon.Primary}"/>
+       </StackPanel>
+      </Grid>
+     </Border>
+    </Grid>
+   </Border>
+
+   <!-- 底部 GitHub 链接 -->
+   <TextBlock x:Name="CopyrightText" Grid.Row="3" Margin="8,0,8,7" HorizontalAlignment="Center"
+              Style="{StaticResource Text.Caption}" Cursor="Hand"
+              ToolTip="打开 GitHub 仓库"
+              MouseLeftButtonUp="CopyrightText_Click"/>
+  </Grid>
+ </Grid>
+</UserControl>

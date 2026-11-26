@@ -1,0 +1,321 @@
+<Window x:Class="CadAI.Core.AiSettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:CadAI.Core"
+        Style="{DynamicResource Window.Base}"
+        Title="设置"
+        Width="680"
+        Height="520"
+        MinWidth="600"
+        MinHeight="460"
+        ResizeMode="CanResizeWithGrip"
+        WindowStartupLocation="CenterScreen"
+        ShowInTaskbar="False"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display">
+  <Window.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="pack://application:,,,/CadAI.Core;component/UI/Themes/Theme.xaml"/>
+      </ResourceDictionary.MergedDictionaries>
+      <!-- 左侧导航按钮样式（参考现代暗色侧栏设置页） -->
+      <Style x:Key="NavButton" TargetType="{x:Type RadioButton}">
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}"/>
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="BorderBrush" Value="Transparent"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="12,9"/>
+        <Setter Property="Margin" Value="0,0,0,4"/>
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="FontSize" Value="{StaticResource FontSize.Body}"/>
+        <Setter Property="Template">
+          <Setter.Value>
+            <ControlTemplate TargetType="{x:Type RadioButton}">
+              <Border x:Name="Bd"
+                      Background="{TemplateBinding Background}"
+                      BorderBrush="{TemplateBinding BorderBrush}"
+                      BorderThickness="{TemplateBinding BorderThickness}"
+                      CornerRadius="10"
+                      Padding="{TemplateBinding Padding}"
+                      SnapsToDevicePixels="True">
+                <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"
+                                  TextElement.Foreground="{TemplateBinding Foreground}"/>
+              </Border>
+              <ControlTemplate.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                  <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.Control.Hover}"/>
+                  <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+                </Trigger>
+                <Trigger Property="IsChecked" Value="True">
+                  <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.MutedPanel}"/>
+                  <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Brush.Border}"/>
+                  <Setter TargetName="Bd" Property="BorderThickness" Value="1"/>
+                  <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}"/>
+                  <Setter Property="FontWeight" Value="SemiBold"/>
+                </Trigger>
+              </ControlTemplate.Triggers>
+            </ControlTemplate>
+          </Setter.Value>
+        </Setter>
+      </Style>
+    </ResourceDictionary>
+  </Window.Resources>
+
+  <Grid>
+    <Grid.ColumnDefinitions>
+      <ColumnDefinition Width="164"/>
+      <ColumnDefinition Width="*"/>
+    </Grid.ColumnDefinitions>
+
+    <!-- 左侧导航栏 -->
+    <Border Grid.Column="0"
+            Background="{StaticResource Brush.Panel}"
+            BorderBrush="{StaticResource Brush.Border}"
+            BorderThickness="0,0,1,0"
+            Padding="12,14">
+      <DockPanel LastChildFill="False">
+        <TextBlock x:Name="SidebarTitleText" DockPanel.Dock="Top" Text="设置" Style="{StaticResource Text.Title}"
+                   FontWeight="SemiBold" Margin="6,0,0,14"/>
+        <StackPanel DockPanel.Dock="Top">
+          <RadioButton x:Name="NavModelButton" GroupName="SettingsNav" IsChecked="True"
+                       Style="{StaticResource NavButton}" Checked="Nav_Checked">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <local:MaterialIcon Symbol="auto_awesome" Width="15" Height="15" Margin="0,0,8,0"/>
+              <TextBlock x:Name="NavModelText" Text="模型配置" VerticalAlignment="Center"/>
+            </StackPanel>
+          </RadioButton>
+          <RadioButton x:Name="NavRuntimeButton" GroupName="SettingsNav"
+                       Style="{StaticResource NavButton}" Checked="Nav_Checked">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <local:MaterialIcon Symbol="settings" Width="15" Height="15" Margin="0,0,8,0"/>
+              <TextBlock x:Name="NavRuntimeText" Text="运行参数" VerticalAlignment="Center"/>
+            </StackPanel>
+          </RadioButton>
+          <RadioButton x:Name="NavVoiceButton" GroupName="SettingsNav"
+                       Style="{StaticResource NavButton}" Checked="Nav_Checked">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <local:MaterialIcon Symbol="mic" Width="15" Height="15" Margin="0,0,8,0"/>
+              <TextBlock x:Name="NavVoiceText" Text="语音输入" VerticalAlignment="Center"/>
+            </StackPanel>
+          </RadioButton>
+          <RadioButton x:Name="NavModalButton" GroupName="SettingsNav"
+                       Style="{StaticResource NavButton}" Checked="Nav_Checked">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+              <local:MaterialIcon Symbol="info" Width="15" Height="15" Margin="0,0,8,0"/>
+              <TextBlock x:Name="NavModalText" Text="弹窗守护" VerticalAlignment="Center"/>
+            </StackPanel>
+          </RadioButton>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- 右侧内容区 + 底部按钮栏 -->
+    <Grid Grid.Column="1" Margin="18,16,18,14">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="*"/>
+        <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+
+      <!-- 1. 模型配置面板（必须配置，不提供默认勾选与预设模型名，支持获取可用模型列表） -->
+      <ScrollViewer x:Name="ModelPanel" Grid.Row="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel>
+          <TextBlock x:Name="ModelSectionTitle" Text="API 连接" Style="{StaticResource Text.Section}" FontWeight="SemiBold" Margin="0,0,0,10"/>
+
+          <TextBlock x:Name="BaseUrlLabel" Text="API 地址" Style="{StaticResource Text.Caption}" Margin="0,0,0,4"/>
+          <TextBox x:Name="BaseUrlBox" Margin="0,0,0,10"
+                   ToolTip="OpenAI 兼容接口地址，例如 https://api.openai.com/v1 或 http://127.0.0.1:11434/v1"/>
+
+          <TextBlock x:Name="ApiKeyLabel" Text="API 密钥（可选，本地加密保存）" Style="{StaticResource Text.Caption}" Margin="0,0,0,4"/>
+          <PasswordBox x:Name="ApiKeyBox" Margin="0,0,0,10"
+                       ToolTip="访问密钥，使用 Windows DPAPI 加密落盘；本地无鉴权服务可留空"/>
+
+          <TextBlock x:Name="ModelNameLabel" Text="当前模型名称" Style="{StaticResource Text.Caption}" Margin="0,0,0,4"/>
+          <TextBox x:Name="ModelBox" Margin="0,0,0,12"
+                   ToolTip="手动输入模型 ID，或点击下方「获取可用模型」后从列表点选"/>
+
+          <!-- 模型目录与检测栏 -->
+          <Border Style="{StaticResource Card.Base}" Padding="12" Margin="0,0,0,4">
+            <Grid>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+              </Grid.RowDefinitions>
+              <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,8">
+                <StackPanel DockPanel.Dock="Left" VerticalAlignment="Center">
+                  <TextBlock x:Name="ModelCatalogTitle" Text="可用模型目录" Style="{StaticResource Text.Body}" FontWeight="SemiBold"/>
+                  <TextBlock x:Name="ConnectionHint" Text="填写 API 地址后，点击右侧按钮获取模型列表或测试连接"
+                             Style="{StaticResource Text.Caption}" TextTrimming="CharacterEllipsis" MaxWidth="250"
+                             ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+                </StackPanel>
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                  <Button x:Name="TestConnectionButton" Content="测试连接" Style="{StaticResource Button.Secondary.Small}"
+                          Margin="0,0,6,0" Click="TestConnection_Click"/>
+                  <Button x:Name="FetchModelsButton" Content="获取可用模型" Style="{StaticResource Button.Tonal.Small}"
+                          Click="FetchModels_Click"/>
+                </StackPanel>
+              </DockPanel>
+
+              <ListBox x:Name="AvailableModelsList" Grid.Row="1" Height="138"
+                       SelectionChanged="AvailableModelsList_SelectionChanged"
+                       ToolTip="点击任意模型即可设为当前对话模型"/>
+            </Grid>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- 2. 运行参数面板 -->
+      <ScrollViewer x:Name="RuntimePanel" Grid.Row="0" Visibility="Collapsed"
+                    VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel>
+          <TextBlock x:Name="RuntimeSectionTitle" Text="运行参数" Style="{StaticResource Text.Section}" FontWeight="SemiBold" Margin="0,0,0,12"/>
+
+          <TextBlock x:Name="TemperatureLabel" Text="采样温度（0.0 – 2.0，默认 0.6）" Style="{StaticResource Text.Caption}" Margin="0,0,0,4"/>
+          <TextBox x:Name="TemperatureBox" Margin="0,0,0,12"
+                   ToolTip="控制回复随机性，工程图纸操作建议 0.2–0.6"/>
+
+          <TextBlock x:Name="MaxAgentCallsLabel" Text="最大工具调用步数（5 – 200，默认 50）" Style="{StaticResource Text.Caption}" Margin="0,0,0,4"/>
+          <TextBox x:Name="MaxAgentCallsBox" Margin="0,0,0,12"
+                   ToolTip="单轮对话中允许自动连续调用 MCP 工具的最大次数"/>
+
+          <TextBlock x:Name="TimeoutSecondsLabel" Text="请求超时（秒，15 – 1200，默认 300）" Style="{StaticResource Text.Caption}" Margin="0,0,0,4"/>
+          <TextBox x:Name="TimeoutSecondsBox" Margin="0,0,0,14"
+                   ToolTip="单次大模型 API 请求的超时时间"/>
+
+          <CheckBox x:Name="AutoCompactCheckBox" Margin="0,0,0,10"
+                    Content="启用长会话上下文自动压缩（超出窗口时自动摘要历史消息）"/>
+
+          <Border Style="{StaticResource Rule}" Margin="0,2,0,12"/>
+
+          <TextBlock x:Name="LoopGuardTitle" Text="防死循环保护" Style="{StaticResource Text.Section}" FontWeight="SemiBold" Margin="0,0,0,8"/>
+          <CheckBox x:Name="AutoRetryLoopCheckBox" Margin="0,0,0,8"
+                    Content="模型思考陷入死循环时自动中断并重试继续"
+                    Checked="AutoRetryLoop_Changed" Unchecked="AutoRetryLoop_Changed"/>
+
+          <TextBlock x:Name="MaxLoopRetriesLabel" Text="死循环最大自动重试次数（0 – 5，默认 2）" Style="{StaticResource Text.Caption}" Margin="0,0,0,4"/>
+          <TextBox x:Name="MaxLoopRetriesBox" Margin="0,0,0,6"
+                   ToolTip="检测到思考或输出重复循环后，自动纠偏重试的上限次数"/>
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- 3. 语音输入面板 -->
+      <ScrollViewer x:Name="VoicePanel" Grid.Row="0" Visibility="Collapsed"
+                    VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel>
+          <TextBlock x:Name="VoiceSectionTitle" Text="语音输入" Style="{StaticResource Text.Section}" FontWeight="SemiBold" Margin="0,0,0,12"/>
+
+          <TextBlock x:Name="VoiceModeLabel" Text="识别方式" Style="{StaticResource Text.Caption}" Margin="0,0,0,4"/>
+          <ComboBox x:Name="VoiceModeBox" Margin="0,0,0,10" SelectionChanged="VoiceMode_Changed">
+            <ComboBoxItem x:Name="VoiceModeLocalItem" Content="Windows 本地语音识别（离线免配置）" Tag="local"/>
+            <ComboBoxItem x:Name="VoiceModeApiItem" Content="语音识别接口（OpenAI / Whisper 兼容）" Tag="api"/>
+          </ComboBox>
+
+          <TextBlock x:Name="VoiceLangLabel" Text="识别语言" Style="{StaticResource Text.Caption}" Margin="0,0,0,4"/>
+          <ComboBox x:Name="VoiceLanguageBox" Margin="0,0,0,10">
+            <ComboBoxItem x:Name="VoiceLangZhItem" Content="中文" Tag="zh"/>
+            <ComboBoxItem x:Name="VoiceLangEnItem" Content="英文" Tag="en"/>
+            <ComboBoxItem x:Name="VoiceLangAutoItem" Content="自动检测" Tag="auto"/>
+          </ComboBox>
+
+          <TextBlock x:Name="VoiceBaseUrlLabel" Text="语音接口地址（留空则复用模型 API 地址）" Style="{StaticResource Text.Caption}" Margin="0,0,0,4"/>
+          <TextBox x:Name="VoiceBaseUrlBox" Margin="0,0,0,10"/>
+
+          <TextBlock x:Name="VoiceApiKeyLabel" Text="语音接口密钥（可选）" Style="{StaticResource Text.Caption}" Margin="0,0,0,4"/>
+          <PasswordBox x:Name="VoiceApiKeyBox" Margin="0,0,0,10"/>
+
+          <TextBlock x:Name="VoiceModelLabel" Text="语音模型名称" Style="{StaticResource Text.Caption}" Margin="0,0,0,4"/>
+          <TextBox x:Name="VoiceModelBox" Margin="0,0,0,12" ToolTip="如 whisper-1、FunAudioLLM/SenseVoiceSmall"/>
+
+          <StackPanel Orientation="Horizontal">
+            <Button x:Name="TestVoiceButton" Content="检测本地语音" Style="{StaticResource Button.Secondary.Small}" Click="TestVoice_Click"/>
+            <TextBlock x:Name="VoiceHint" VerticalAlignment="Center" Margin="10,0,0,0"
+                       Style="{StaticResource Text.Caption}" TextTrimming="CharacterEllipsis"
+                       ToolTip="{Binding Text, RelativeSource={RelativeSource Self}}"/>
+          </StackPanel>
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- 4. 弹窗守护（ModalAgent 自动处理规则） -->
+      <ScrollViewer x:Name="ModalPanel" Grid.Row="0" Visibility="Collapsed"
+                    VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel>
+          <TextBlock x:Name="ModalSectionTitle" Text="弹窗守护（ModalAgent）" Style="{StaticResource Text.Section}" FontWeight="SemiBold" Margin="0,0,0,10"/>
+
+          <CheckBox x:Name="ModalAgentEnabledCheckBox" Margin="0,0,0,8"
+                    Content="启用后台弹窗守护（自动处理 AutoCAD 模态阻塞弹窗）"/>
+          <CheckBox x:Name="ModalAiBridgeCheckBox" Margin="0,0,0,10"
+                    Content="白名单未命中时交由 AI 安全决策（危险按钮自动拦截）"/>
+
+          <TextBlock x:Name="ModalStallLabel" Text="卡死触发检测阈值（秒，5 – 600，默认 45）" Style="{StaticResource Text.Caption}" Margin="0,0,0,4"/>
+          <TextBox x:Name="ModalStallSecondsBox" Margin="0,0,0,12"
+                   ToolTip="单次 MCP 工具调用超过此秒数无响应时，触发模态弹窗巡检"/>
+
+          <Border Style="{StaticResource Card.Base}" Padding="12">
+            <StackPanel>
+              <DockPanel LastChildFill="False" Margin="0,0,0,8">
+                <TextBlock x:Name="ModalRulesTitle" DockPanel.Dock="Left" Text="自定义白名单自动应答规则" Style="{StaticResource Text.Body}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                <Button x:Name="DeleteModalRuleButton" DockPanel.Dock="Right" Content="删除选中" Style="{StaticResource Button.Subtle.Small}" Click="DeleteModalRule_Click"/>
+              </DockPanel>
+
+              <ListBox x:Name="ModalRulesList" Height="106" Margin="0,0,0,8">
+                <ListBox.ItemTemplate>
+                  <DataTemplate>
+                    <DockPanel LastChildFill="True">
+                      <Border DockPanel.Dock="Right" VerticalAlignment="Center" Margin="10,0,0,0" Padding="8,3"
+                              CornerRadius="{StaticResource Radius.Pill}"
+                              Background="{StaticResource Brush.Accent.Subtle}">
+                        <TextBlock Text="{Binding ActionDisplay}" Style="{StaticResource Text.Caption}"
+                                   Foreground="{StaticResource Brush.Focus}" FontSize="{StaticResource FontSize.Micro}"
+                                   VerticalAlignment="Center"/>
+                      </Border>
+                      <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{Binding Name}" Style="{StaticResource Text.Body}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Text="{Binding Markers}" Style="{StaticResource Text.Caption}" TextTrimming="CharacterEllipsis"/>
+                      </StackPanel>
+                    </DockPanel>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+
+              <!-- 快速添加规则行 -->
+              <Grid>
+                <Grid.RowDefinitions>
+                  <RowDefinition Height="Auto"/>
+                  <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                  <ColumnDefinition Width="120"/>
+                  <ColumnDefinition Width="*"/>
+                  <ColumnDefinition Width="122"/>
+                  <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock x:Name="NewRuleNameLabel" Grid.Row="0" Grid.Column="0" Text="规则名称" Style="{StaticResource Text.Caption}" Margin="2,0,6,3"/>
+                <TextBlock x:Name="NewRuleMarkersLabel" Grid.Row="0" Grid.Column="1" Text="弹窗关键词（逗号分隔）" Style="{StaticResource Text.Caption}" Margin="2,0,6,3"/>
+                <TextBlock x:Name="NewRuleActionLabel" Grid.Row="0" Grid.Column="2" Text="自动动作" Style="{StaticResource Text.Caption}" Margin="2,0,6,3"/>
+                <TextBox x:Name="NewRuleNameBox" Grid.Row="1" Grid.Column="0" Margin="0,0,6,0" ToolTip="规则名称（如 缺失参照忽略）"/>
+                <TextBox x:Name="NewRuleMarkersBox" Grid.Row="1" Grid.Column="1" Margin="0,0,6,0" ToolTip="弹窗标题或正文关键词（多个用逗号分隔）"/>
+                <ComboBox x:Name="NewRuleActionBox" Grid.Row="1" Grid.Column="2" Margin="0,0,6,0" Style="{StaticResource ComboBox.Small}" SelectedIndex="0">
+                  <ComboBoxItem x:Name="ActionPositiveItem" Content="点击确定/是" Tag="ClickPositive"/>
+                  <ComboBoxItem x:Name="ActionNegativeItem" Content="点击取消/否" Tag="ClickNegative"/>
+                  <ComboBoxItem x:Name="ActionCloseItem" Content="关闭窗口" Tag="Close"/>
+                  <ComboBoxItem x:Name="ActionIgnoreItem" Content="忽略" Tag="Ignore"/>
+                </ComboBox>
+                <Button x:Name="AddModalRuleButton" Grid.Row="1" Grid.Column="3" Content="添加" Style="{StaticResource Button.Tonal.Small}" Click="AddModalRule_Click"/>
+              </Grid>
+            </StackPanel>
+          </Border>
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- 底部保存 / 取消栏 -->
+      <Border Grid.Row="1" Margin="0,12,0,0" Padding="0,12,0,0"
+              BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,1,0,0">
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+          <Button x:Name="CancelButton" Content="取消" IsCancel="True" Style="{StaticResource Button.Secondary}" Margin="0,0,8,0"/>
+          <Button x:Name="SaveButton" Content="保存" Click="Ok_Click" Style="{StaticResource Button.Primary}"/>
+        </StackPanel>
+      </Border>
+    </Grid>
+  </Grid>
+</Window>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <PropertyGroup>
+    <Version Condition="'$(Version)' == ''">1.0.0</Version>
+    <Authors>CADAI Contributors</Authors>
+    <Company>CADAI</Company>
+    <Product>CADAI</Product>
+    <Description>CADAI - Open-source AI Chat, ModalAgent Watchdog, and MCP Toolset for Autodesk AutoCAD</Description>
+    <Copyright>Copyright © 2026 CADAI Contributors</Copyright>
+    <RepositoryRoot>$(MSBuildThisFileDirectory)</RepositoryRoot>
+
+    <PwshExe Condition="'$(PwshExe)' == '' and Exists('$(ProgramFiles)\PowerShell\7\pwsh.exe')">$(ProgramFiles)\PowerShell\7\pwsh.exe</PwshExe>
+    <PwshExe Condition="'$(PwshExe)' == '' and '$(ProgramW6432)' != '' and Exists('$(ProgramW6432)\PowerShell\7\pwsh.exe')">$(ProgramW6432)\PowerShell\7\pwsh.exe</PwshExe>
+    <PwshExe Condition="'$(PwshExe)' == '' and '$(LOCALAPPDATA)' != '' and Exists('$(LOCALAPPDATA)\Microsoft\WindowsApps\pwsh.exe')">$(LOCALAPPDATA)\Microsoft\WindowsApps\pwsh.exe</PwshExe>
+    <PwshExe Condition="'$(PwshExe)' == ''">pwsh</PwshExe>
+
+    <!-- 统一输出目录：AutoCAD 插件按目标框架分目录输出（net48 / net8.0-windows）以同时支持 AutoCAD 2019-2026 -->
+    <ArtifactOutputPath Condition="'$(MSBuildProjectName)' == 'CadAI.Host.AutoCAD' or '$(MSBuildProjectName)' == 'CadAI.Mcp.AutoCAD'">$(RepositoryRoot)bin\AutoCADAI\$(TargetFramework)\</ArtifactOutputPath>
+    <ArtifactOutputPath Condition="'$(ArtifactOutputPath)' == ''">$(RepositoryRoot).build\bin\$(MSBuildProjectName)\$(TargetFramework)\</ArtifactOutputPath>
+
+    <BuildOutputPath Condition="'$(MSBuildProjectName)' == 'CadAI.ModalAgent'">$(RepositoryRoot).build\bin\$(MSBuildProjectName)\</BuildOutputPath>
+    <BuildOutputPath Condition="'$(BuildOutputPath)' == ''">$(ArtifactOutputPath)</BuildOutputPath>
+    <BaseOutputPath>$(BuildOutputPath)</BaseOutputPath>
+    <OutputPath>$(BuildOutputPath)</OutputPath>
+    <PublishDir>$(ArtifactOutputPath)</PublishDir>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <BaseIntermediateOutputPath>$(RepositoryRoot).build\obj\$(MSBuildProjectName)\</BaseIntermediateOutputPath>
+    <IntermediateOutputPath>$(RepositoryRoot).build\obj\$(MSBuildProjectName)\$(Configuration)\$(TargetFramework)\</IntermediateOutputPath>
+
+    <AllowedReferenceRelatedFileExtensions>none</AllowedReferenceRelatedFileExtensions>
+
+    <!-- 自动探测 AutoCAD SDK 路径：区分 2019-2024（net48）与 2025-2026（net8.0-windows） -->
+    <AcadDirNet48 Condition="'$(AcadDirNet48)' == '' and Exists('$(RepositoryRoot)src\CadAI.Host.AutoCAD\extern\acad2019\acdbmgd.dll')">$(RepositoryRoot)src\CadAI.Host.AutoCAD\extern\acad2019\</AcadDirNet48>
+    <AcadDirNet48 Condition="'$(AcadDirNet48)' == '' and Exists('C:\Program Files\Autodesk\AutoCAD 2021\acdbmgd.dll')">C:\Program Files\Autodesk\AutoCAD 2021\</AcadDirNet48>
+    <AcadDirNet48 Condition="'$(AcadDirNet48)' == '' and Exists('C:\Program Files\Autodesk\AutoCAD 2022\acdbmgd.dll')">C:\Program Files\Autodesk\AutoCAD 2022\</AcadDirNet48>
+    <AcadDirNet48 Condition="'$(AcadDirNet48)' == '' and Exists('C:\Program Files\Autodesk\AutoCAD 2020\acdbmgd.dll')">C:\Program Files\Autodesk\AutoCAD 2020\</AcadDirNet48>
+    <AcadDirNet48 Condition="'$(AcadDirNet48)' == '' and Exists('C:\Program Files\Autodesk\AutoCAD 2019\acdbmgd.dll')">C:\Program Files\Autodesk\AutoCAD 2019\</AcadDirNet48>
+    <AcadDirNet48 Condition="'$(AcadDirNet48)' == '' and Exists('C:\Program Files\Autodesk\AutoCAD 2023\acdbmgd.dll')">C:\Program Files\Autodesk\AutoCAD 2023\</AcadDirNet48>
+    <AcadDirNet48 Condition="'$(AcadDirNet48)' == '' and Exists('C:\Program Files\Autodesk\AutoCAD 2024\acdbmgd.dll')">C:\Program Files\Autodesk\AutoCAD 2024\</AcadDirNet48>
+
+    <AcadDirNet8 Condition="'$(AcadDirNet8)' == '' and Exists('C:\Program Files\Autodesk\AutoCAD 2025\acdbmgd.dll')">C:\Program Files\Autodesk\AutoCAD 2025\</AcadDirNet8>
+    <AcadDirNet8 Condition="'$(AcadDirNet8)' == '' and Exists('C:\Program Files\Autodesk\AutoCAD 2026\acdbmgd.dll')">C:\Program Files\Autodesk\AutoCAD 2026\</AcadDirNet8>
+
+    <AcadDir Condition="'$(AcadDir)' == '' and '$(TargetFramework)' == 'net48'">$(AcadDirNet48)</AcadDir>
+    <AcadDir Condition="'$(AcadDir)' == '' and '$(TargetFramework)' == 'net8.0-windows'">$(AcadDirNet8)</AcadDir>
+    <AcadDir Condition="'$(AcadDir)' == ''">$(AcadDirNet48)</AcadDir>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+  </PropertyGroup>
+</Project>

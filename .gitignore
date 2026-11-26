@@ -1,0 +1,13 @@
+bin/
+.build/
+obj/
+.vs/
+*.user
+*.suo
+*.cache
+*.log
+TestResults/
+dist/
+output/
+*_wpftmp.csproj
+acad.err

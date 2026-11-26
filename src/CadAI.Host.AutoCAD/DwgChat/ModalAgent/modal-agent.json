@@ -1,0 +1,176 @@
+{
+  // ===================== DwgChat 的 ModalAgent 配置（AutoCAD 宿主） =====================
+  // 与 CADAI 那份是**两份独立配置**：AutoCAD 的弹窗文案（"此工程图参考的以下零件需要更新"
+  // "AIP移植错误"…）在 acad.exe 上永远不会出现，照搬等于白名单形同虚设。
+  // 本文件按 AutoCAD 的模态框重写，只保留确实两边通用的少数几条（保存确认、旧版本 DWG）。
+  //
+  // 支持注释与尾逗号；改完重启 ModalAgent 生效。
+  // 注意：文件存在且能解析时，Rules 会**整体替换**内置默认规则表。
+
+  // 只监视 AutoCAD。宿主启动时也会用 --process acad 覆盖一次，这里写清楚是为了单独调试时也对。
+  "ProcessNames": [ "acad" ],
+
+  "Debug": false,
+
+  // whitelist：只有 Rules 命中的弹窗才动作，其余一律不碰（默认，最安全）。
+  // AutoCAD 的弹窗里有"是否启用硬件加速""是否发送错误报告"这类会改用户环境的选择，
+  // 绝不能靠 standard 模式盲点确定。
+  "Mode": "whitelist",
+
+  "MaxAttemptsPerWindow": 3,
+
+  // 主框架窗口有上千个子孙窗口，真弹窗只有几十个；超过阈值就判定"这不是弹窗"。
+  "MaxDialogChildWindows": 100,
+
+  "IgnoreUntitledWindows": true,
+
+  "PollIntervalMs": 250,
+
+  "IgnoreWindowClasses": [
+    "CiceroUIWndFrame", "MSCTFIME UI", "Default IME", "Sogou_TSF_UI",
+    "GDI+ Window", "DDE Server Window", ".NET-BroadcastEventWindow",
+    "MediaContextNotificationWindow", "SystemResourceNotifyWindow",
+    "NotificationWindowHelper", "AdApplicationButton", "HintWnd",
+    "Hidden Window", "RibbonHwndSource",
+    // AutoCAD 专有噪声窗
+    "AcUiPaletteWndClass", "AcQTipWnd", "AcDcWindowClass", "AcTtWndClass",
+    "Autodesk.AutoCAD.Windows.QTipWindow", "AcGraphWnd"
+  ],
+
+  // 标题含这些标记的窗口跳过：插件自己的窗口绝不能被"自动应答"。
+  // "CAD AI" 同时覆盖对话窗口（标题就是它）与 AI 设置窗口（"CAD AI 设置"）。
+  "IgnoreTitleMarkers": [ "CAD AI", "DwgAI", "AutoCAD AI" ],
+
+  // 文件选择器：硬保护，任何规则都不允许自动点击。
+  // AutoCAD 的"打开/另存为/选择文件"全是标准对话框，误点是灾难性的。
+  "FileDialogTitles": [
+    "打开", "保存", "另存", "选择文件", "选择文件夹", "浏览", "打开图形", "保存图形",
+    "Open", "Save", "Save As", "Browse", "Select File", "Select Folder"
+  ],
+
+  "ExpanderButtons": [
+    "详细信息", "详细", "更多", "高级", "帮助",
+    "details", "more", "advanced", "help"
+  ],
+
+  // ============ 弹窗桥接（白名单未命中时交给宿主 AI 决策） ============
+  // DwgChat 侧目前**没有**桥接服务端，因此未命中的弹窗只会等一次短连接失败后放弃
+  // （最坏情况 = 现在这样：弹窗留着等人点）。保持开启是为了将来接上服务端时零改动。
+  "EnableDialogBridge": true,
+  "DecisionTrigger": "immediate",
+  "DecisionTimeoutMs": 20000,
+  "CaptureDialogImages": true,
+  "CaptureDirectory": "",
+  "PipeName": "",
+  "DialogLogPath": "",
+
+  "DecisionDenyWords": [
+    "删除", "移除", "清除", "覆盖", "替换", "放弃", "不保存", "重置", "卸载",
+    "delete", "remove", "clear", "overwrite", "replace", "discard", "donotsave", "uninstall"
+  ],
+
+  // ============ 应答规则（按顺序匹配，首条命中即执行） ============
+  // Match：Any=标题+正文 / Title=仅标题 / Body=仅正文
+  // Action：ClickPositive=点确定 / ClickNegative=点取消否 / Close=关窗口 / Ignore=明确不动作
+  "Rules": [
+    {
+      // AutoCAD 打开含自定义对象的图纸时的"代理信息"框。
+      // 自动化场景下必须点掉：留着它整个消息泵就是堵的，后续工具调用全部无法进行。
+      "Name": "代理信息框→确定",
+      "Match": "Any",
+      "Action": "ClickPositive",
+      "Markers": [
+        "代理信息", "代理对象", "显示代理图形",
+        "proxyinformation", "proxyobjects", "proxygraphics"
+      ]
+    },
+    {
+      // 缺少 SHX 字体（最常见的一类）。点确定 = 接受替换字体继续打开。
+      // 更彻底的做法是先用 cad_text_font_audit / cad_text_font_repair 把字体修好，
+      // 这里只是"别让它卡住"的兜底。
+      "Name": "缺少SHX字体→确定",
+      "Match": "Any",
+      "Action": "ClickPositive",
+      "Markers": [
+        "未找到字体", "找不到字体", "字体未找到", "缺少字体", "指定字体给样式", "替代字体",
+        "missingfontfile", "cannotfindfont", "fontnotfound", "missingshx", "shxfont",
+        "substitutefont", "fontsubstitution"
+      ]
+    },
+    {
+      // 外部参照 / 光栅图像 / 打印样式表找不到：继续打开（保留原路径，不改引用）。
+      "Name": "参照与样式缺失→继续",
+      "Match": "Any",
+      "Action": "ClickPositive",
+      "Markers": [
+        "未融入的外部参照", "外部参照文件未找到", "未找到参照", "参照文件不存在",
+        "未找到图像", "未找到图像文件", "图像文件不存在",
+        "未找到打印样式表", "找不到打印样式表",
+        "unresolvedxref", "xrefnotfound", "referencenotfound", "imagefilenotfound",
+        "plotstylesheetnotfound"
+      ]
+    },
+    {
+      // 教育版 / 打印戳记：只是提示，点确定继续。
+      "Name": "教育版戳记提示→确定",
+      "Match": "Any",
+      "Action": "ClickPositive",
+      "Markers": [
+        "教育版", "打印戳记", "由autodesk教育版产品制作",
+        "educationalversion", "plotstamp", "producedbyanautodeskeducational"
+      ]
+    },
+    {
+      // 旧版本 DWG 迁移提示：点确定按当前版本打开。
+      "Name": "旧版本DWG→确定",
+      "Match": "Any",
+      "Action": "ClickPositive",
+      "Markers": [
+        "旧版本", "旧版本dwg", "正在打开旧版本", "dwg版本",
+        "olderdwgversion", "dwgversion", "openingalegacy"
+      ]
+    },
+    {
+      // 文件被占用 / 只读：继续（以只读方式打开）比直接失败有用得多。
+      "Name": "文件被占用→继续",
+      "Match": "Any",
+      "Action": "ClickPositive",
+      "Markers": [
+        "文件正被使用", "被其他用户锁定", "正在被使用", "以只读方式打开",
+        "lockedbyanotheruser", "fileinuse", "readonly"
+      ]
+    },
+    {
+      // 保存确认框：**不保存**。
+      // 与本插件的约定一致——只在用户明确要求时落盘（cad_doc_save），
+      // 其余情况静默保存会让用户不知道文件被改了。
+      "Name": "保存确认框→不保存",
+      "Match": "Any",
+      "Action": "ClickNegative",
+      "Markers": [
+        "是否要将更改保存", "是否保存对", "是否保存更改", "保存修改",
+        "doyouwanttosavethechanges", "doyouwanttosavechangesto", "savethechangestodocument"
+      ]
+    },
+    {
+      // 打印和发布详细信息 / 警告 / 错误：出图或导出完成时的提示弹窗，点确定关闭继续。
+      "Name": "打印与发布提示→确定",
+      "Match": "Any",
+      "Action": "ClickPositive",
+      "Markers": [
+        "打印和发布详细信息", "打印和发布", "打印 - 警告", "打印 - 错误",
+        "plotandpublishdetails", "plotandpublish", "plotwarning", "ploterror"
+      ]
+    },
+    {
+      // 图形修复管理器：自动化期间不要弹出来占屏，直接关掉。
+      // （它只在 AutoCAD 启动阶段出现，正常跑任务时不会遇到；留着是为了无人值守场景。）
+      "Name": "图形修复管理器→关闭",
+      "Match": "Title",
+      "Action": "Close",
+      "Markers": [ "图形修复管理器", "drawingrecovery" ]
+    }
+  ],
+
+  "LogFilePath": ""
+}

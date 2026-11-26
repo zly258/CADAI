@@ -1,0 +1,537 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ResourceDictionary.MergedDictionaries>
+    <ResourceDictionary Source="Colors.xaml" />
+    <ResourceDictionary Source="Typography.xaml" />
+    <ResourceDictionary Source="Layout.xaml" />
+    <ResourceDictionary Source="Buttons.xaml" />
+    <ResourceDictionary Source="Inputs.xaml" />
+    <ResourceDictionary Source="Cards.xaml" />
+  </ResourceDictionary.MergedDictionaries>
+
+  <!-- ============ 文本默认值：全界面统一字体、常规字重 ============ -->
+  <!--
+    前景色不能写死成 Brush.Text.Primary：隐式样式（Setter）优先级高于属性继承，
+    ContentPresenter 为字符串内容自动生成的 TextBlock / AccessText 会被这条全局样式命中，
+    于是按钮自己的 Foreground（Button.Primary 的白字、Button.Danger 的红字、状态标签的语义色、
+    选中页签的 Accent 色……）全被静默盖成正文深灰——主按钮看上去就是"蓝底深灰字"。
+
+    正确做法：默认前景由"最近的内容宿主"决定。Control.Foreground 就是 TextElement.Foreground，
+    会沿视觉树继承到 ContentPresenter 内部；这里把生成的文本绑回该继承值，
+    没有内容宿主时（普通 TextBlock）再退回默认正文色。
+    悬停 / 禁用等前景切换因此自动生效，不再需要逐个模板打补丁。
+  -->
+  <Style TargetType="TextBlock">
+    <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+    <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="Foreground" Value="{Binding Path=(TextElement.Foreground), RelativeSource={RelativeSource AncestorType={x:Type ContentPresenter}}, FallbackValue={StaticResource Brush.Text.Primary}}" />
+  </Style>
+
+  <!-- 生成 AccessText（RecognizesAccessKey=True）走同一条规则 -->
+  <Style TargetType="AccessText">
+    <Setter Property="Foreground" Value="{Binding Path=(TextElement.Foreground), RelativeSource={RelativeSource AncestorType={x:Type ContentPresenter}}, FallbackValue={StaticResource Brush.Text.Primary}}" />
+  </Style>
+
+  <Style TargetType="TextBox" BasedOn="{StaticResource TextBox.Base}" />
+  <Style TargetType="ComboBox" BasedOn="{StaticResource ComboBox.Base}" />
+  <Style TargetType="PasswordBox" BasedOn="{StaticResource PasswordBox.Base}" />
+  <Style TargetType="Button" BasedOn="{StaticResource Button.Secondary}" />
+  <Style TargetType="CheckBox" BasedOn="{StaticResource CheckBox.Base}" />
+  <Style TargetType="RadioButton" BasedOn="{StaticResource RadioButton.Base}" />
+
+  <!-- ============ 轻量分区（原 GroupBox）：常规标题 + 单层边框面板 ============ -->
+  <Style TargetType="GroupBox">
+    <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+    <Setter Property="FontSize" Value="{StaticResource FontSize.Section}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+    <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="{DynamicResource Layout.GroupPadding}" />
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type GroupBox}">
+          <Border Background="{TemplateBinding Background}"
+                  BorderBrush="{TemplateBinding BorderBrush}"
+                  BorderThickness="{TemplateBinding BorderThickness}"
+                  CornerRadius="{StaticResource Radius.Card}"
+                  Padding="{TemplateBinding Padding}"
+                  SnapsToDevicePixels="True">
+            <Grid>
+              <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+              </Grid.RowDefinitions>
+              <ContentPresenter Grid.Row="0"
+                                Margin="{DynamicResource Layout.SectionMargin}"
+                                Content="{TemplateBinding Header}"
+                                ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                RecognizesAccessKey="False"
+                                TextElement.FontSize="{StaticResource FontSize.Section}"
+                                TextElement.FontWeight="Normal"
+                                TextElement.Foreground="{StaticResource Brush.Text.Primary}" />
+              <ContentPresenter Grid.Row="1" />
+            </Grid>
+          </Border>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ============ MD3 Tab：现代圆润标签页 + 底部主色激活条 ============ -->
+  <ControlTemplate x:Key="TabControl.Template" TargetType="{x:Type TabControl}">
+    <Grid>
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto" />
+        <RowDefinition Height="*" />
+      </Grid.RowDefinitions>
+      <Border Grid.Row="0" BorderBrush="{StaticResource Brush.Border}" BorderThickness="0,0,0,1" Margin="0,0,0,8">
+        <TabPanel x:Name="HeaderPanel"
+                  Panel.ZIndex="1"
+                  IsItemsHost="True"
+                  KeyboardNavigation.TabIndex="1" />
+      </Border>
+      <Border Grid.Row="1"
+              Background="{StaticResource Brush.Surface}"
+              BorderBrush="{StaticResource Brush.Border}"
+              BorderThickness="1"
+              CornerRadius="{StaticResource Radius.Card}"
+              SnapsToDevicePixels="True">
+        <ContentPresenter x:Name="PART_SelectedContentHost"
+                          Margin="{TemplateBinding Padding}"
+                          ContentSource="SelectedContent"
+                          SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+      </Border>
+    </Grid>
+  </ControlTemplate>
+
+  <ControlTemplate x:Key="TabItem.Template" TargetType="{x:Type TabItem}">
+    <Grid Margin="0,0,4,0" SnapsToDevicePixels="True">
+      <Border x:Name="Bd"
+              Background="{TemplateBinding Background}"
+              CornerRadius="8,8,0,0"
+              Padding="{TemplateBinding Padding}"
+              SnapsToDevicePixels="True">
+        <ContentPresenter ContentSource="Header"
+                          HorizontalAlignment="Center"
+                          VerticalAlignment="Center"
+                          RecognizesAccessKey="True"
+                          TextElement.Foreground="{TemplateBinding Foreground}" />
+      </Border>
+      <Border x:Name="ActiveIndicator"
+              Height="3"
+              Margin="10,0,10,0"
+              VerticalAlignment="Bottom"
+              CornerRadius="2,2,0,0"
+              Background="{StaticResource Brush.Accent}"
+              Visibility="Collapsed" />
+    </Grid>
+    <ControlTemplate.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.Control.Hover}" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+      </Trigger>
+      <Trigger Property="IsSelected" Value="True">
+        <Setter TargetName="Bd" Property="Background" Value="Transparent" />
+        <Setter TargetName="ActiveIndicator" Property="Visibility" Value="Visible" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Focus}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+      </Trigger>
+      <MultiTrigger>
+        <MultiTrigger.Conditions>
+          <Condition Property="IsSelected" Value="True" />
+          <Condition Property="IsMouseOver" Value="True" />
+        </MultiTrigger.Conditions>
+        <Setter TargetName="Bd" Property="Background" Value="{StaticResource Brush.Control.Hover}" />
+        <Setter TargetName="ActiveIndicator" Property="Visibility" Value="Visible" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Focus}" />
+      </MultiTrigger>
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter TargetName="Bd" Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Disabled}" />
+      </Trigger>
+    </ControlTemplate.Triggers>
+  </ControlTemplate>
+
+  <Style TargetType="TabControl">
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Setter Property="Template" Value="{StaticResource TabControl.Template}" />
+  </Style>
+
+  <Style TargetType="TabItem">
+    <Setter Property="Padding" Value="{DynamicResource Layout.TabPadding}" />
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+    <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}" />
+    <Setter Property="Template" Value="{StaticResource TabItem.Template}" />
+  </Style>
+
+  <Style TargetType="ToolTip">
+    <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+    <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <!-- 深底白字：白字只允许出现在 Accent/Danger/Tooltip 三类深色底上（规范 R4）。 -->
+    <Setter Property="Foreground" Value="{StaticResource Brush.Tooltip.Foreground}" />
+    <Setter Property="Background" Value="{StaticResource Brush.Tooltip.Background}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Tooltip.Background}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="{DynamicResource Layout.TooltipPadding}" />
+  </Style>
+
+  <!-- ============ 列表：紧凑、选中只用轻背景 ============ -->
+  <!-- 用带 Key 的基样式 + 空派生：ListView / ListViewItem 是派生类型，隐式样式按精确类型匹配。 -->
+  <Style x:Key="ListBox.Base" TargetType="ListBox">
+    <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+    <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+    <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="0" />
+    <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+    <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+  </Style>
+
+  <Style TargetType="ListBox" BasedOn="{StaticResource ListBox.Base}" />
+  <Style TargetType="ListView" BasedOn="{StaticResource ListBox.Base}" />
+
+  <Style x:Key="ListBoxItem.Base" TargetType="ListBoxItem">
+    <Setter Property="Padding" Value="{DynamicResource Layout.ListItemPadding}" />
+    <Setter Property="Margin" Value="0" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="ListBoxItem">
+          <Border x:Name="ItemBorder"
+                  Background="{TemplateBinding Background}"
+                  Padding="{TemplateBinding Padding}"
+                  SnapsToDevicePixels="True">
+            <ContentPresenter />
+          </Border>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="ItemBorder" Property="Background" Value="{StaticResource Brush.Control.Hover}" />
+              <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter TargetName="ItemBorder" Property="Background" Value="{StaticResource Brush.Selection}" />
+              <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+            </Trigger>
+            <MultiTrigger>
+              <MultiTrigger.Conditions>
+                <Condition Property="IsSelected" Value="True" />
+                <Condition Property="IsMouseOver" Value="True" />
+              </MultiTrigger.Conditions>
+              <Setter TargetName="ItemBorder" Property="Background" Value="{StaticResource Brush.Selection.Hover}" />
+              <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+            </MultiTrigger>
+            <Trigger Property="IsEnabled" Value="False">
+              <Setter TargetName="ItemBorder" Property="Background" Value="Transparent" />
+              <Setter Property="Foreground" Value="{StaticResource Brush.Text.Disabled}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+  <Style TargetType="ListBoxItem" BasedOn="{StaticResource ListBoxItem.Base}" />
+  <Style TargetType="{x:Type ListViewItem}">
+    <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+    <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Padding" Value="{DynamicResource Layout.ListItemPadding}" />
+    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+    <Style.Triggers>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{StaticResource Brush.Control.Hover}" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+      </Trigger>
+      <Trigger Property="IsSelected" Value="True">
+        <Setter Property="Background" Value="{StaticResource Brush.Selection}" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+      </Trigger>
+      <MultiTrigger>
+        <MultiTrigger.Conditions>
+          <Condition Property="IsSelected" Value="True" />
+          <Condition Property="IsMouseOver" Value="True" />
+        </MultiTrigger.Conditions>
+        <Setter Property="Background" Value="{StaticResource Brush.Selection.Hover}" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+      </MultiTrigger>
+      <Trigger Property="IsEnabled" Value="False">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Disabled}" />
+      </Trigger>
+    </Style.Triggers>
+  </Style>
+
+  <Style TargetType="{x:Type GridViewColumnHeader}">
+    <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+    <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}" />
+    <Setter Property="Background" Value="{StaticResource Brush.MutedPanel}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <Setter Property="Padding" Value="6,0" />
+    <Setter Property="Height" Value="{DynamicResource Layout.HeaderHeight}" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type GridViewColumnHeader}">
+          <Grid SnapsToDevicePixels="True">
+            <Border x:Name="HeaderBorder"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    Padding="{TemplateBinding Padding}"
+                    SnapsToDevicePixels="True">
+              <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center" />
+            </Border>
+            <!-- 纵向表头分割线：居中微缩 14px，优雅分隔列并明确指示列宽调整边界 -->
+            <Rectangle Width="1"
+                       Height="14"
+                       HorizontalAlignment="Right"
+                       VerticalAlignment="Center"
+                       Fill="{StaticResource Brush.Border}"
+                       SnapsToDevicePixels="True" />
+            <Thumb x:Name="PART_HeaderGripper"
+                   Width="8"
+                   HorizontalAlignment="Right"
+                   Background="Transparent"
+                   Cursor="SizeWE" />
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="HeaderBorder" Property="Background" Value="{StaticResource Brush.Control.Hover}" />
+              <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- ============ 表格：行/单元格选中走 Selection 体系，不再落到系统蓝 ============ -->
+  <Style TargetType="{x:Type DataGrid}">
+    <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+    <Setter Property="FontSize" Value="{StaticResource FontSize.Body}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+    <Setter Property="Background" Value="{StaticResource Brush.Panel}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="RowBackground" Value="{StaticResource Brush.Panel}" />
+    <Setter Property="AlternatingRowBackground" Value="{StaticResource Brush.MutedPanel}" />
+    <!-- 交替行必须配 AlternationCount=2 才会画出来：默认值 1 等于关闭，
+         只设 AlternatingRowBackground 是一条"看起来生效、实际没有"的假设置。 -->
+    <Setter Property="AlternationCount" Value="2" />
+    <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="VerticalGridLinesBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="GridLinesVisibility" Value="Horizontal" />
+    <Setter Property="HeadersVisibility" Value="Column" />
+    <Setter Property="RowHeight" Value="{DynamicResource Layout.RowHeight}" />
+    <Setter Property="ColumnHeaderHeight" Value="{DynamicResource Layout.HeaderHeight}" />
+    <Setter Property="CanUserResizeRows" Value="False" />
+    <Setter Property="RowHeaderWidth" Value="0" />
+    <Setter Property="SnapsToDevicePixels" Value="True" />
+  </Style>
+
+  <Style TargetType="{x:Type DataGridColumnHeader}">
+    <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+    <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Text.Secondary}" />
+    <Setter Property="Background" Value="{StaticResource Brush.MutedPanel}" />
+    <Setter Property="BorderBrush" Value="{StaticResource Brush.Border}" />
+    <Setter Property="BorderThickness" Value="0,0,0,1" />
+    <!-- 与 DataGridCell 的 6,1 内边距对齐：表头文字和列内容必须落在同一条竖线上。 -->
+    <Setter Property="Padding" Value="6,0" />
+    <Setter Property="Height" Value="{DynamicResource Layout.HeaderHeight}" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+    <Setter Property="Cursor" Value="Hand" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type DataGridColumnHeader}">
+          <Grid SnapsToDevicePixels="True">
+            <Border x:Name="HeaderBorder"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    Padding="{TemplateBinding Padding}"
+                    SnapsToDevicePixels="True">
+              <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                RecognizesAccessKey="True"
+                                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+            </Border>
+            <!-- 纵向表头分割线：居中微缩 14px，优雅分隔列并明确指示列宽调整边界 -->
+            <Rectangle Width="1"
+                       Height="14"
+                       HorizontalAlignment="Right"
+                       VerticalAlignment="Center"
+                       Fill="{StaticResource Brush.Border}"
+                       SnapsToDevicePixels="True" />
+            <Thumb x:Name="PART_RightHeaderGripper"
+                   Width="8"
+                   HorizontalAlignment="Right"
+                   Cursor="SizeWE">
+              <!-- 必须自带空模板：裸 Thumb 会落到系统默认外观上，在表头右缘画出
+                   一条白色竖条 + 深色边（列头看起来被切成一块块），这里只保留可拖拽区域。 -->
+              <Thumb.Template>
+                <ControlTemplate TargetType="{x:Type Thumb}">
+                  <Border Background="Transparent" />
+                </ControlTemplate>
+              </Thumb.Template>
+            </Thumb>
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+              <Setter TargetName="HeaderBorder" Property="Background" Value="{StaticResource Brush.Control.Hover}" />
+              <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- 复选框/开关列的列头：内容居中，与居中的勾选框对齐。 -->
+  <Style x:Key="DataGridColumnHeader.Center" TargetType="{x:Type DataGridColumnHeader}"
+         BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+    <Setter Property="HorizontalContentAlignment" Value="Center" />
+  </Style>
+
+  <Style TargetType="DataGridRow">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+    <Style.Triggers>
+      <!-- 斑马纹：DataGrid 侧已设 AlternationCount=2；这里必须显式给奇数行上色，
+           否则上面的 Background=Transparent 会把 AlternatingRowBackground 盖掉。
+           顺序在前，悬停/选中仍然优先。 -->
+      <Trigger Property="AlternationIndex" Value="1">
+        <Setter Property="Background" Value="{StaticResource Brush.MutedPanel}" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+      </Trigger>
+      <Trigger Property="IsMouseOver" Value="True">
+        <Setter Property="Background" Value="{StaticResource Brush.Control.Hover}" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+      </Trigger>
+      <Trigger Property="IsSelected" Value="True">
+        <Setter Property="Background" Value="{StaticResource Brush.Selection}" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+      </Trigger>
+      <MultiTrigger>
+        <MultiTrigger.Conditions>
+          <Condition Property="IsSelected" Value="True" />
+          <Condition Property="IsMouseOver" Value="True" />
+        </MultiTrigger.Conditions>
+        <Setter Property="Background" Value="{StaticResource Brush.Selection.Hover}" />
+        <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+      </MultiTrigger>
+    </Style.Triggers>
+  </Style>
+
+  <Style TargetType="DataGridCell">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="6,1" />
+    <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type DataGridCell}">
+          <Grid>
+            <Border x:Name="Bd"
+                    Background="{TemplateBinding Background}"
+                    BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}"
+                    Padding="{TemplateBinding Padding}"
+                    SnapsToDevicePixels="True">
+              <ContentPresenter VerticalAlignment="Center" />
+            </Border>
+            <!-- 键盘焦点环单独一层：改 Bd 的 BorderThickness 会让单元格内容在聚焦瞬间跳 1px，
+                 叠在外面则完全不参与布局。 -->
+            <Border x:Name="FocusRing"
+                    BorderBrush="{StaticResource Brush.Accent}"
+                    BorderThickness="1"
+                    Visibility="Collapsed"
+                    IsHitTestVisible="False"
+                    SnapsToDevicePixels="True" />
+          </Grid>
+          <ControlTemplate.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+              <Setter TargetName="Bd" Property="Background" Value="Transparent" />
+              <Setter Property="Foreground" Value="{StaticResource Brush.Text.Primary}" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+              <Setter TargetName="FocusRing" Property="Visibility" Value="Visible" />
+            </Trigger>
+            <!-- 进入编辑态时收起焦点环：单元格里的编辑框自己会画 Accent 边框，
+                 两层叠在一起就是用户看到的"双边框"。 -->
+            <Trigger Property="IsEditing" Value="True">
+              <Setter TargetName="FocusRing" Property="Visibility" Value="Collapsed" />
+            </Trigger>
+          </ControlTemplate.Triggers>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+
+  <!-- 单元格编辑框：行高只有 24，不能再套输入框的固定高度，
+       否则编辑框会撑出单元格、盖住上下两行。 -->
+  <Style x:Key="TextBox.GridCell" TargetType="TextBox" BasedOn="{StaticResource TextBox.Base}">
+    <Setter Property="Height" Value="Auto" />
+    <Setter Property="MinHeight" Value="0" />
+    <Setter Property="Padding" Value="2,0" />
+    <Setter Property="VerticalContentAlignment" Value="Center" />
+  </Style>
+
+  <!-- ============ 进度条：扁平轨道 + Accent 指示器 ============ -->
+  <Style TargetType="ProgressBar">
+    <Setter Property="Height" Value="{DynamicResource Layout.ProgressBarHeight}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Accent}" />
+    <Setter Property="Background" Value="{StaticResource Brush.MutedPanel}" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Template">
+      <Setter.Value>
+        <ControlTemplate TargetType="{x:Type ProgressBar}">
+          <Grid>
+            <Border x:Name="PART_Track"
+                    Background="{TemplateBinding Background}"
+                    CornerRadius="{StaticResource Radius.Small}"
+                    SnapsToDevicePixels="True" />
+            <Border x:Name="PART_Indicator"
+                    HorizontalAlignment="Left"
+                    Background="{TemplateBinding Foreground}"
+                    CornerRadius="{StaticResource Radius.Small}"
+                    SnapsToDevicePixels="True" />
+          </Grid>
+        </ControlTemplate>
+      </Setter.Value>
+    </Setter>
+  </Style>
+</ResourceDictionary>

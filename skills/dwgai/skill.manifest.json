@@ -1,0 +1,204 @@
+﻿{
+  "name": "dwgai",
+  "version": "2.2.0",
+  "displayName": "AutoCAD 智能制图、审图与翻译",
+  "description": "AutoCAD DWG 图纸感知与统计体检、图层/布局管理、实体检索、几何制图、尺寸标注、文字排版与段落合并、SHX 字体诊断修复、图块属性、PDF 出图交付、多文件快速批处理（不打开图纸读写文本/图层/导出）；工程翻译与术语库在 CAD 翻译助手插件，不在本技能面",
+  "entryPoint": "SKILL.md",
+  "references": [
+    "references/drawing-inspection.md",
+    "references/text-typography.md",
+    "references/geometry-annotation.md",
+    "references/layout-and-output.md",
+    "references/styles-and-fonts.md",
+    "references/safety-and-commands.md",
+    "references/ai-configuration.md",
+    "references/batch-and-analysis.md"
+  ],
+  "routingHints": {
+    "howToLoad": "先 cad_skill_list 看清单，再用 cad_skill_read(package=\"dwgai\", id=\"references/xxx.md\") 按需读**一条**。不要整包读入。",
+    "toolGroups": {
+      "skill": [
+        "cad_skill_list",
+        "cad_skill_read"
+      ],
+      "document": [
+        "cad_doc_active_info",
+        "cad_doc_list",
+        "cad_doc_save"
+      ],
+      "layout": [
+        "cad_layout_list",
+        "cad_layout_switch",
+        "cad_layout_create",
+        "cad_layout_rename",
+        "cad_layout_set_plot_config"
+      ],
+      "statistics": [
+        "cad_drawing_statistics",
+        "cad_drawing_health_check"
+      ],
+      "layer": [
+        "cad_layer_list",
+        "cad_layer_create",
+        "cad_layer_set_state"
+      ],
+      "style": [
+        "cad_text_style_list",
+        "cad_text_style_set",
+        "cad_text_style_create",
+        "cad_text_font_audit",
+        "cad_text_font_repair"
+      ],
+      "selection": [
+        "cad_selection_get",
+        "cad_selection_set",
+        "cad_selection_filter",
+        "cad_selection_select_by_filter",
+        "cad_selection_window"
+      ],
+      "entity": [
+        "cad_count_entities_by_type",
+        "cad_query_entities",
+        "cad_get_entity_info",
+        "cad_entity_delete",
+        "cad_entity_set_properties",
+        "cad_entity_transform",
+        "cad_entity_copy",
+        "cad_entity_mirror",
+        "cad_entity_offset",
+        "cad_entity_array_rectangular",
+        "cad_entity_array_polar",
+        "cad_entity_fillet_chamfer",
+        "cad_entity_explode"
+      ],
+      "geometry": [
+        "cad_draw_line",
+        "cad_draw_circle",
+        "cad_draw_polyline",
+        "cad_draw_text",
+        "cad_draw_hatch",
+        "cad_draw_arc",
+        "cad_draw_rectangle",
+        "cad_draw_ellipse",
+        "cad_draw_spline",
+        "cad_draw_centerline"
+      ],
+      "dimension": [
+        "cad_dimension_linear_create",
+        "cad_dimension_aligned_create",
+        "cad_dimension_diametric_create",
+        "cad_dimension_radial_create",
+        "cad_leader_create",
+        "cad_dimension_angular_create",
+        "cad_dimension_ordinate_create",
+        "cad_dimension_chain_create",
+        "cad_dimension_style_create",
+        "cad_dimension_style_set"
+      ],
+      "text": [
+        "cad_text_search",
+        "cad_text_modify",
+        "cad_text_batch_replace",
+        "cad_text_merge_to_mtext",
+        "cad_text_align",
+        "cad_text_distribute"
+      ],
+      "block": [
+        "cad_block_list",
+        "cad_block_get_attributes",
+        "cad_block_set_attributes"
+      ],
+      "view": [
+        "cad_view_zoom_extents",
+        "cad_view_zoom_window",
+        "cad_view_zoom_entity",
+        "cad_view_capture_screen"
+      ],
+      "delivery": [
+        "cad_execute_command",
+        "cad_audit_purge",
+        "cad_export_pdf"
+      ],
+      "batch": [
+        "cad_batch_execute",
+        "cad_batch_read_texts",
+        "cad_batch_replace_texts",
+        "cad_batch_set_layer_states",
+        "cad_batch_summary",
+        "cad_batch_export_dxf",
+        "cad_batch_export_pdf",
+        "cad_compare_drawings"
+      ],
+      "table": [
+        "cad_table_list",
+        "cad_table_read",
+        "cad_table_write",
+        "cad_virtual_table_detect"
+      ],
+      "xref": [
+        "cad_xref_list",
+        "cad_xref_update"
+      ],
+      "analysis": [
+        "cad_measure_area",
+        "cad_measure_length",
+        "cad_layer_isolate",
+        "cad_export_dxf",
+        "cad_block_insert",
+        "cad_export_drawing_json"
+      ],
+      "office": [
+        "cad_excel_read_sheet",
+        "cad_excel_list_sheets",
+        "cad_excel_write_data",
+        "cad_excel_export_table",
+        "cad_pdf_read_text",
+        "cad_pdf_get_info",
+        "cad_pdf_merge",
+        "cad_pdf_split"
+      ]
+    },
+    "nonMutationTools": [
+      "cad_skill_list",
+      "cad_skill_read",
+      "cad_doc_active_info",
+      "cad_doc_list",
+      "cad_layout_list",
+      "cad_drawing_statistics",
+      "cad_drawing_health_check",
+      "cad_layer_list",
+      "cad_text_style_list",
+      "cad_text_font_audit",
+      "cad_selection_get",
+      "cad_count_entities_by_type",
+      "cad_query_entities",
+      "cad_get_entity_info",
+      "cad_text_search",
+      "cad_block_list",
+      "cad_block_get_attributes",
+      "cad_view_zoom_extents",
+      "cad_view_zoom_window",
+      "cad_excel_read_sheet",
+      "cad_excel_list_sheets",
+      "cad_pdf_read_text",
+      "cad_pdf_get_info",
+      "cad_view_zoom_entity",
+      "cad_view_capture_screen",
+      "cad_selection_filter",
+      "cad_selection_window",
+      "cad_batch_read_texts",
+      "cad_batch_summary",
+      "cad_batch_export_dxf",
+      "cad_batch_export_pdf",
+      "cad_compare_drawings",
+      "cad_table_list",
+      "cad_table_read",
+      "cad_virtual_table_detect",
+      "cad_xref_list",
+      "cad_measure_area",
+      "cad_measure_length",
+      "cad_export_dxf",
+      "cad_export_drawing_json"
+    ]
+  }
+}

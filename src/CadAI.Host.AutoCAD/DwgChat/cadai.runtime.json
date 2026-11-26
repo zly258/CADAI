@@ -1,0 +1,8 @@
+{
+  "_readme": "CADAI 运行时配置（可选）。默认不预设模型，请通过 AutoCAD 命令 CADCHATCFG 或对话左侧设置图标配置 API 地址、密钥与模型名称。",
+
+  "chat": {
+    "baseUrl": "",
+    "model": ""
+  }
+}

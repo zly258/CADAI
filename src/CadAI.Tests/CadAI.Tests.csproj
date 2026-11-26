@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <AssemblyName>CadAI.Tests</AssemblyName>
+    <RootNamespace>CadAI.Tests</RootNamespace>
+    <IsTestProject>true</IsTestProject>
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\CadAI.Core\Modal\ModalDecisionSafety.cs" Link="Linked\ModalDecisionSafety.cs" />
+    <Compile Include="..\CadAI.Core\Agent\AiDefaults.cs" Link="Linked\AiDefaults.cs" />
+    <Compile Include="..\CadAI.Core\Agent\SkillFrontMatter.cs" Link="Linked\SkillFrontMatter.cs" />
+    <Compile Include="..\CadAI.Core\Agent\ExchangeStore.cs" Link="Linked\ExchangeStore.cs" />
+    <Compile Include="..\CadAI.Core\Update\UpdateChecker.cs" Link="Linked\UpdateChecker.cs" />
+    <Compile Include="..\CadAI.Core\Agent\ReviewContextBudget.cs" Link="Linked\ReviewContextBudget.cs" />
+    <Compile Include="..\CadAI.Core\Agent\CaptureRetentionPolicy.cs" Link="Linked\CaptureRetentionPolicy.cs" />
+    <Compile Include="..\CadAI.Core\Agent\AiRepetitionGuard.cs" Link="Linked\AiRepetitionGuard.cs" />
+    <Compile Include="..\CadAI.Core\Agent\PdfTextExtractor.cs" Link="Linked\PdfTextExtractor.cs" />
+    <Compile Include="..\CadAI.Core\Office\ExcelDocumentService.cs" Link="Linked\ExcelDocumentService.cs" />
+    <Compile Include="..\CadAI.Core\Office\PdfDocumentService.cs" Link="Linked\PdfDocumentService.cs" />
+    <Compile Include="..\CadAI.Core\Agent\UserPromptText.cs" Link="Linked\UserPromptText.cs" />
+    <Compile Include="..\CadAI.Core\Voice\WavEncoder.cs" Link="Linked\WavEncoder.cs" />
+    <Compile Include="..\CadAI.ModalAgent\AgentConfig.cs" Link="Linked\AgentConfig.cs" />
+    <Compile Include="..\CadAI.Core\Agent\AgentMessage.cs" Link="Linked\AgentMessage.cs" />
+    <Compile Include="..\CadAI.Core\Agent\AgentJson.cs" Link="Linked\AgentJson.cs" />
+    <Compile Include="..\CadAI.Core\Agent\AgentContextCompactor.cs" Link="Linked\AgentContextCompactor.cs" />
+    <Compile Include="..\CadAI.Core\Hosting\IToolScopePolicy.cs" Link="Linked\IToolScopePolicy.cs" />
+    <Compile Include="..\CadAI.Host.AutoCAD\DwgChat\Hosting\CadToolScopePolicy.cs" Link="Linked\CadToolScopePolicy.cs" />
+    <Compile Include="..\CadAI.Core\Hosting\IHostEnvironment.cs" Link="Linked\IHostEnvironment.cs" />
+    <Compile Include="..\CadAI.Core\Hosting\ProductDataPaths.cs" Link="Linked\ProductDataPaths.cs" />
+  </ItemGroup>
+
+  <Target Name="RemoveTestHostAppHost" AfterTargets="Build;CopyFilesToOutputDirectory">
+    <Delete Files="$(OutDir)testhost.exe;$(OutDir)testhost.x86.exe" ContinueOnError="true" />
+  </Target>
+
+</Project>

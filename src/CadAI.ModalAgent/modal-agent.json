@@ -1,0 +1,116 @@
+{
+  // ============================ ModalAgent 配置（通用模板） ============================
+  // 本文件可选：缺失时使用内置默认值（与下面内容一致）。
+  // 支持注释与尾逗号；改完重启 ModalAgent 生效。
+  //
+  // 注意：本文件按 exe 同目录解析（由宿主用 --config 传绝对路径）。
+  // 一旦文件存在且能解析，它的 Rules 会**整体替换**内置默认规则表，
+  // 因此新增规则时两边都要改（内置默认见 AgentConfig.Rules）。
+  //
+  // 宿主专属弹窗规则（如 AutoCAD 的 DWF 发布警告）不放这里：
+  // 每个宿主提供自己的配置文件（参考 modal-agent.dwgai.json），
+  // 由宿主启动器用 --config <宿主配置> 传入。
+
+  // 要监视的宿主进程名（不含 .exe），可多个。宿主启动器必须显式传 --process，
+  // 这里的默认值只是裸跑 ModalAgent.exe 时的兜底。
+  "ProcessNames": [ ],
+
+  // true 显示调试窗口（状态 + 实时执行记录）；命令行 --debug 可强制
+  "Debug": false,
+
+  // ============ 安全模式（防误杀核心） ============
+  // whitelist：只有 Rules 命中的弹窗才动作，其余一律不碰（默认，最安全）
+  // standard ：白名单之外，额外对"唯一按钮的纯提示框"点确定
+  "Mode": "whitelist",
+
+  // 同一窗口最多动作次数（防止死循环点同一个框）
+  "MaxAttemptsPerWindow": 3,
+
+  // 候选窗口的子孙窗口数上限：超过它就判定"这不是弹窗"。
+  // 主框架窗口有几百上千个子孙窗口（Ribbon/浏览器/视口/状态栏），真弹窗只有几十个。
+  // 没有这条判据时，EnumChildWindows 会把主窗口整棵子树里某个弹窗的正文读进来，
+  // 让主窗口命中弹窗规则并被盲点按钮（2026-10-13 的 AutoCAD 闪退复盘）。
+  "MaxDialogChildWindows": 100,
+
+  // 无标题窗口一律不处理（输入法等噪声窗口大多无标题）
+  "IgnoreUntitledWindows": true,
+
+  // 轮询兜底间隔毫秒（WinEvent 事件驱动为主，轮询兜底）
+  "PollIntervalMs": 250,
+
+  // ============ 保护性过滤 ============
+  // 这些窗口类一律跳过（输入法 / GDI / DDE 等系统噪声）
+  "IgnoreWindowClasses": [
+    "CiceroUIWndFrame", "MSCTFIME UI", "Default IME", "Sogou_TSF_UI",
+    "GDI+ Window", "DDE Server Window", ".NET-BroadcastEventWindow",
+    "MediaContextNotificationWindow", "SystemResourceNotifyWindow",
+    "NotificationWindowHelper", "AdApplicationButton", "HintWnd",
+    "Hidden Window", "RibbonHwndSource"
+  ],
+
+  // 标题含这些标记的窗口跳过（如插件自己的窗口；各宿主按品牌追加）
+  "IgnoreTitleMarkers": [ ],
+
+  // 文件选择器：硬保护，任何规则都不允许自动点击
+  "FileDialogTitles": [
+    "打开", "保存", "另存", "选择文件", "选择文件夹", "浏览",
+    "Open", "Save", "Save As", "Browse", "Select File", "Select Folder"
+  ],
+
+  // 展开型按钮（详细信息/帮助等），不算业务选项分支
+  "ExpanderButtons": [
+    "详细信息", "详细", "更多", "高级", "帮助",
+    "details", "more", "advanced", "help"
+  ],
+
+  // ============ 弹窗桥接（白名单未命中时交给宿主 AI 决策） ============
+  // 关闭后行为与旧版完全一致：未命中规则就是不动作。
+  // 桥接的任何失败（宿主没在听、AI 超时、决策按钮不存在）一律回落为"不动作"。
+  "EnableDialogBridge": true,
+
+  // 桥接触发时机：
+  //   immediate = 规则未命中立刻上报（默认，1-3 秒响应）
+  //   stall     = 本进程不主动上报，只在宿主反馈"工具调用卡住"时由宿主看门狗决策
+  "DecisionTrigger": "immediate",
+
+  // 等待宿主决策的总超时（毫秒）；超时保持弹窗不动作
+  "DecisionTimeoutMs": 20000,
+
+  // 上报时附带弹窗截图（视觉兜底：树控件/WPF/自绘弹窗的文本读不全）
+  "CaptureDialogImages": true,
+
+  // 截图输出目录（空 = 宿主启动器经 --capture-dir 传入；裸跑时 Documents\CADAI\Workspace\Captures\Dialogs）
+  "CaptureDirectory": "",
+
+  // 宿主管道名（空 = 宿主启动器经 --pipe 传入；裸跑时 CADAI.ModalAgent.<--id>）
+  "PipeName": "",
+
+  // 结构化弹窗事件日志（空 = exe 同目录 modal-agent.dialogs.jsonl）
+  "DialogLogPath": "",
+
+  // AI 决策的危险按钮拒绝词：命中即拒绝点击（只对桥接决策生效，不影响 Rules）
+  "DecisionDenyWords": [
+    "删除", "移除", "清除", "覆盖", "替换", "放弃", "不保存", "重置",
+    "delete", "remove", "clear", "overwrite", "replace", "discard", "donotsave"
+  ],
+
+  // ============ 应答规则（按顺序匹配，首条命中即执行） ============
+  // 通用模板只保留跨宿主通用的保存确认框规则；
+  // 宿主专属规则见 modal-agent.dwgai.json（AutoCAD 的发布/依赖/样式等规则）。
+  // Match：Any=标题+正文 / Title=仅标题 / Body=仅正文
+  // Action：ClickPositive=点确定 / ClickNegative=点取消否 / Close=关窗口 / Ignore=明确不动作
+  "Rules": [
+    {
+      "Name": "保存确认框→不保存",
+      "Match": "Any",
+      "Action": "ClickNegative",
+      "Markers": [
+        "是否要将更改保存", "已经在当前会话中更新", "是否保存对",
+        "doyouwanttosavethechanges", "doyouwanttosavechangesto", "savethechangestodocument"
+      ]
+    }
+  ],
+
+  // 执行记录文件路径（空 = exe 同目录 modal-agent.log）
+  "LogFilePath": ""
+}

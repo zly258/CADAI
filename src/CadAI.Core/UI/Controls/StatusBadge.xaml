@@ -1,0 +1,62 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <ResourceDictionary.MergedDictionaries>
+    <ResourceDictionary Source="pack://application:,,,/CadAI.Core;component/UI/Themes/Colors.xaml" />
+    <ResourceDictionary Source="pack://application:,,,/CadAI.Core;component/UI/Themes/Typography.xaml" />
+    <ResourceDictionary Source="pack://application:,,,/CadAI.Core;component/UI/Themes/Layout.xaml" />
+  </ResourceDictionary.MergedDictionaries>
+
+  <!-- 小标签模板：胶囊底 + 居中文字 -->
+  <ControlTemplate x:Key="StatusBadge.Template" TargetType="{x:Type ContentControl}">
+    <Border x:Name="Bd"
+            Background="{TemplateBinding Background}"
+            BorderBrush="{TemplateBinding BorderBrush}"
+            BorderThickness="{TemplateBinding BorderThickness}"
+            CornerRadius="{StaticResource Radius.Pill}"
+            Padding="{TemplateBinding Padding}"
+            SnapsToDevicePixels="True">
+      <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+    </Border>
+  </ControlTemplate>
+
+  <!-- 空闲 -->
+  <Style x:Key="StatusBadge.Idle" TargetType="{x:Type ContentControl}">
+    <Setter Property="FontFamily" Value="{StaticResource Font.Ui}" />
+    <Setter Property="FontSize" Value="{StaticResource FontSize.Caption}" />
+    <Setter Property="FontWeight" Value="Normal" />
+    <Setter Property="Padding" Value="8,0" />
+    <Setter Property="Height" Value="{StaticResource Layout.TagHeight}" />
+    <Setter Property="Background" Value="{StaticResource Brush.Badge.Idle.Background}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Badge.Idle.Foreground}" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+    <Setter Property="Template" Value="{StaticResource StatusBadge.Template}" />
+  </Style>
+
+  <!-- 连接中 -->
+  <Style x:Key="StatusBadge.Connecting" TargetType="{x:Type ContentControl}" BasedOn="{StaticResource StatusBadge.Idle}">
+    <Setter Property="Background" Value="{StaticResource Brush.Badge.Active.Background}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Badge.Active.Foreground}" />
+  </Style>
+
+  <!-- 执行中 -->
+  <Style x:Key="StatusBadge.Busy" TargetType="{x:Type ContentControl}" BasedOn="{StaticResource StatusBadge.Connecting}" />
+
+  <!-- 完成 -->
+  <Style x:Key="StatusBadge.Done" TargetType="{x:Type ContentControl}" BasedOn="{StaticResource StatusBadge.Idle}">
+    <Setter Property="Background" Value="{StaticResource Brush.Badge.Done.Background}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Badge.Done.Foreground}" />
+  </Style>
+
+  <!-- 已停止 -->
+  <Style x:Key="StatusBadge.Stopped" TargetType="{x:Type ContentControl}" BasedOn="{StaticResource StatusBadge.Idle}">
+    <Setter Property="Background" Value="{StaticResource Brush.Badge.Stopped.Background}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Badge.Stopped.Foreground}" />
+  </Style>
+
+  <!-- 失败 -->
+  <Style x:Key="StatusBadge.Failed" TargetType="{x:Type ContentControl}" BasedOn="{StaticResource StatusBadge.Idle}">
+    <Setter Property="Background" Value="{StaticResource Brush.Badge.Failed.Background}" />
+    <Setter Property="Foreground" Value="{StaticResource Brush.Badge.Failed.Foreground}" />
+  </Style>
+</ResourceDictionary>
